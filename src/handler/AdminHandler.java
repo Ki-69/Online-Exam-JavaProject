@@ -45,15 +45,16 @@ public class AdminHandler implements HttpHandler {
 
                 String[] p = body.split("&");
 
-                String q = URLDecoder.decode(p[0].split("=")[1], "UTF-8");
-                String a = URLDecoder.decode(p[1].split("=")[1], "UTF-8");
-                String b = URLDecoder.decode(p[2].split("=")[1], "UTF-8");
-                String c = URLDecoder.decode(p[3].split("=")[1], "UTF-8");
-                String d = URLDecoder.decode(p[4].split("=")[1], "UTF-8");
-                String correct = URLDecoder.decode(p[5].split("=")[1], "UTF-8");
-                int marks = Integer.parseInt(URLDecoder.decode(p[6].split("=")[1], "UTF-8"));
+                int examId = Integer.parseInt(URLDecoder.decode(p[0].split("=")[1], "UTF-8"));
+                String q = URLDecoder.decode(p[1].split("=")[1], "UTF-8");
+                String a = URLDecoder.decode(p[2].split("=")[1], "UTF-8");
+                String b = URLDecoder.decode(p[3].split("=")[1], "UTF-8");
+                String c = URLDecoder.decode(p[4].split("=")[1], "UTF-8");
+                String d = URLDecoder.decode(p[5].split("=")[1], "UTF-8");
+                String correct = URLDecoder.decode(p[6].split("=")[1], "UTF-8");
+                int marks = Integer.parseInt(URLDecoder.decode(p[7].split("=")[1], "UTF-8"));
 
-                service.addQuestion(q, a, b, c, d, correct, marks);
+                service.addQuestion(examId, q, a, b, c, d, correct, marks);
 
                 String response = "Question Added";
 

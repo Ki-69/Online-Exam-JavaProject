@@ -10,7 +10,9 @@ import java.net.URL;
 
 import java.util.ArrayList;
 import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Scanner;
 
 public class StudentDashboard {
@@ -19,6 +21,10 @@ public class StudentDashboard {
     private List<Integer> questionIds = new ArrayList<>();
     private JFrame frame;
     private JPanel questionPanel;
+    private JComboBox<String> courseCombo;
+    private JComboBox<String> examCombo;
+    private final Map<Integer, Integer> courseMap = new HashMap<>();
+    private final Map<Integer, Integer> examMap = new HashMap<>();
 
     public StudentDashboard(int studentId) {
 
@@ -58,7 +64,45 @@ public class StudentDashboard {
 
         headerPanel.add(headerLeft, BorderLayout.WEST);
 
-        // Control Buttons Panel
+        // Selection Panel for Courses and Exams
+        JPanel selectionPanel = new JPanel();
+        selectionPanel.setBackground(UITheme.BG_SECONDARY);
+        selectionPanel.setLayout(new FlowLayout(FlowLayout.LEFT, 18, 16));
+        selectionPanel.setBorder(BorderFactory.createEmptyBorder(15, 20, 15, 20));
+
+        JLabel courseLabel = new JLabel("Course:");
+        courseLabel.setFont(UITheme.FONT_LABEL);
+        courseLabel.setForeground(UITheme.TEXT_PRIMARY);
+        selectionPanel.add(courseLabel);
+
+        courseCombo = new JComboBox<>();
+        courseCombo.setPreferredSize(new Dimension(280, 36));
+        selectionPanel.add(courseCombo);
+
+        JLabel examLabel = new JLabel("Exam:");
+        examLabel.setFont(UITheme.FONT_LABEL);
+        examLabel.setForeground(UITheme.TEXT_PRIMARY);
+        selectionPanel.add(examLabel);
+
+        examCombo = new JComboBox<>();
+        examCombo.setPreferredSize(new Dimension(280, 36));
+        selectionPanel.add(examCombo);
+
+        JButton refreshButton = UITheme.createPrimaryButton("⟳ Refresh");
+        selectionPanel.add(refreshButton);
+
+        courseCombo.addActionListener(e -> {
+            Integer selectedIndex = courseCombo.getSelectedIndex();
+            if (selectedIndex >= 0) {
+                Integer courseId = courseMap.get(selectedIndex);
+                if (courseId != null) {
+                    loadExams(courseId);
+                }
+            }
+        });
+
+        refreshButton.addActionListener(e -> loadCourses());
+
         JPanel buttonPanel = new JPanel();
         buttonPanel.setBackground(UITheme.BG_SECONDARY);
         buttonPanel.setLayout(new FlowLayout(FlowLayout.CENTER, 15, 15));
@@ -81,24 +125,45 @@ public class StudentDashboard {
         scrollPane.getViewport().setBackground(UITheme.BG_PRIMARY);
         scrollPane.setBorder(BorderFactory.createLineBorder(UITheme.BORDER_COLOR, 1));
 
+        JPanel topPanel = new JPanel();
+        topPanel.setLayout(new BorderLayout());
+        topPanel.add(headerPanel, BorderLayout.NORTH);
+        topPanel.add(selectionPanel, BorderLayout.SOUTH);
+
         frame.setLayout(new BorderLayout());
-        frame.add(headerPanel, BorderLayout.NORTH);
+        frame.add(topPanel, BorderLayout.NORTH);
         frame.add(buttonPanel, BorderLayout.SOUTH);
         frame.add(scrollPane, BorderLayout.CENTER);
+
+        loadCourses();
 
         // START EXAM EVENT
         startButton.addActionListener(e -> {
             try {
+                int selectedExamIndex = examCombo.getSelectedIndex();
+                if (selectedExamIndex < 0) {
+                    JOptionPane.showMessageDialog(frame, "Please select an exam before starting.", "No Exam Selected", JOptionPane.WARNING_MESSAGE);
+                    return;
+                }
+
+                Integer examId = examMap.get(selectedExamIndex);
+                if (examId == null) {
+                    JOptionPane.showMessageDialog(frame, "Please choose a valid exam.", "Invalid Exam", JOptionPane.WARNING_MESSAGE);
+                    return;
+                }
+
                 questionPanel.removeAll();
                 answerGroups.clear();
                 questionIds.clear();
 
-                String response = ApiClient.startExam();
+                String response = ApiClient.startExam(examId);
                 String[] questions = response.split("\n");
 
                 int questionNumber = 1;
                 for (String q : questions) {
+                    if (q.isBlank()) continue;
                     String[] parts = q.split("\\|");
+                    if (parts.length < 6) continue;
 
                     int qId = Integer.parseInt(parts[0]);
                     questionIds.add(qId);
@@ -150,7 +215,14 @@ public class StudentDashboard {
                     answerData.deleteCharAt(answerData.length() - 1);
                 }
 
-                String data = "studentId=" + studentId + "&answers=" + answerData;
+                int selectedExamIndex = examCombo.getSelectedIndex();
+                if (selectedExamIndex < 0 || !examMap.containsKey(selectedExamIndex)) {
+                    JOptionPane.showMessageDialog(frame, "Please select an exam before submitting.", "No Exam Selected", JOptionPane.WARNING_MESSAGE);
+                    return;
+                }
+
+                int examId = examMap.get(selectedExamIndex);
+                String data = "studentId=" + studentId + "&examId=" + examId + "&answers=" + answerData;
 
                 URL url = new URL("http://localhost:8080/submitAnswers");
                 HttpURLConnection con = (HttpURLConnection) url.openConnection();
@@ -172,6 +244,65 @@ public class StudentDashboard {
         });
 
         frame.setVisible(true);
+    }
+
+    private void loadCourses() {
+        try {
+            courseMap.clear();
+            courseCombo.removeAllItems();
+
+            String response = ApiClient.getCourses();
+            String[] lines = response.split("\n");
+            int index = 0;
+
+            for (String line : lines) {
+                if (line.isBlank()) continue;
+                String[] parts = line.split("\\|");
+                if (parts.length < 2) continue;
+
+                int courseId = Integer.parseInt(parts[0]);
+                String title = parts[1];
+                courseCombo.addItem(title);
+                courseMap.put(index++, courseId);
+            }
+
+            if (courseCombo.getItemCount() > 0) {
+                courseCombo.setSelectedIndex(0);
+                if (courseMap.containsKey(0)) {
+                    loadExams(courseMap.get(0));
+                }
+            }
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(frame, "Error loading courses", "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void loadExams(int courseId) {
+        try {
+            examMap.clear();
+            examCombo.removeAllItems();
+
+            String response = ApiClient.getExams(courseId);
+            String[] lines = response.split("\n");
+            int index = 0;
+
+            for (String line : lines) {
+                if (line.isBlank()) continue;
+                String[] parts = line.split("\\|");
+                if (parts.length < 2) continue;
+
+                int examId = Integer.parseInt(parts[0]);
+                String title = parts[1];
+                examCombo.addItem(title);
+                examMap.put(index++, examId);
+            }
+
+            if (examCombo.getItemCount() > 0) {
+                examCombo.setSelectedIndex(0);
+            }
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(frame, "Error loading exams", "Error", JOptionPane.ERROR_MESSAGE);
+        }
     }
 
     private JPanel createQuestionPanel(String[] parts, int questionNumber) {

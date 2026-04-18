@@ -2,7 +2,7 @@ package handler;
 
 import com.sun.net.httpserver.*;
 import service.ExamService;
-import model.Question;
+import model.Exam;
 
 import java.io.*;
 import java.net.URI;
@@ -11,48 +11,43 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.Arrays;
 
-public class ExamHandler implements HttpHandler {
+public class ExamListHandler implements HttpHandler {
 
     private ExamService service = new ExamService();
 
     @Override
     public void handle(HttpExchange exchange) throws IOException {
-
         if (!exchange.getRequestMethod().equalsIgnoreCase("GET")) {
             exchange.sendResponseHeaders(405, -1);
             return;
         }
 
         URI requestURI = exchange.getRequestURI();
-        Map<String, String> params = parseQuery(requestURI.getQuery());
+        String query = requestURI.getQuery();
+        Map<String, String> params = parseQuery(query);
 
-        if (!params.containsKey("examId")) {
+        if (!params.containsKey("courseId")) {
             exchange.sendResponseHeaders(400, -1);
             return;
         }
 
         try {
-            int examId = Integer.parseInt(params.get("examId"));
-            List<Question> questions = service.getQuestionsByExamId(examId);
+            int courseId = Integer.parseInt(params.get("courseId"));
+            List<Exam> exams = service.getExamsByCourseId(courseId);
 
             StringBuilder response = new StringBuilder();
-
-            for (Question q : questions) {
-                response.append(q.getId()).append("|")
-                        .append(q.getText()).append("|")
-                        .append(q.getOptionA()).append("|")
-                        .append(q.getOptionB()).append("|")
-                        .append(q.getOptionC()).append("|")
-                        .append(q.getOptionD()).append("\n");
+            for (Exam exam : exams) {
+                response.append(exam.getExamId())
+                        .append("|")
+                        .append(exam.getTitle())
+                        .append("\n");
             }
 
             byte[] bytes = response.toString().getBytes();
-
             exchange.sendResponseHeaders(200, bytes.length);
             OutputStream os = exchange.getResponseBody();
             os.write(bytes);
             os.close();
-
         } catch (Exception e) {
             e.printStackTrace();
             exchange.sendResponseHeaders(500, -1);

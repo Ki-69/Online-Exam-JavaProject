@@ -14,7 +14,7 @@ public class AdminService {
         return resultDAO.getAllResults();
     }
 
-    public void addQuestion(String q, String a, String b, String c, String d, String correct, int marks) throws Exception {
-        questionDAO.insertQuestion(q, a, b, c, d, correct, marks);
+    public void addQuestion(int examId, String q, String a, String b, String c, String d, String correct, int marks) throws Exception {
+        questionDAO.insertQuestion(examId, q, a, b, c, d, correct, marks);
     }
 }

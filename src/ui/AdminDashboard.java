@@ -153,6 +153,10 @@ public class AdminDashboard {
         q.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
         addFieldRow(mainPanel, "Question Text:", q);
 
+        JTextField examIdField = UITheme.createTextField();
+        examIdField.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
+        addFieldRow(mainPanel, "Exam ID:", examIdField);
+
         JTextField a = UITheme.createTextField();
         a.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
         addFieldRow(mainPanel, "Option A:", a);
@@ -200,6 +204,7 @@ public class AdminDashboard {
         submitBtn.addActionListener(e -> {
             try {
                 String questionText = q.getText().trim();
+                String examIdText = examIdField.getText().trim();
                 String optionA = a.getText().trim();
                 String optionB = b.getText().trim();
                 String optionC = c.getText().trim();
@@ -207,7 +212,7 @@ public class AdminDashboard {
                 String correctAns = correct.getText().trim().toUpperCase();
                 String marksStr = marks.getText().trim();
 
-                if (questionText.isEmpty() || optionA.isEmpty() || optionB.isEmpty() || 
+                if (questionText.isEmpty() || examIdText.isEmpty() || optionA.isEmpty() || optionB.isEmpty() || 
                     optionC.isEmpty() || optionD.isEmpty() || correctAns.isEmpty() || marksStr.isEmpty()) {
                     JOptionPane.showMessageDialog(dialog, "All fields are required!", "Validation Error", JOptionPane.WARNING_MESSAGE);
                     return;
@@ -215,6 +220,14 @@ public class AdminDashboard {
 
                 if (!correctAns.matches("[A-D]")) {
                     JOptionPane.showMessageDialog(dialog, "Correct answer must be A, B, C, or D", "Validation Error", JOptionPane.WARNING_MESSAGE);
+                    return;
+                }
+
+                int examId;
+                try {
+                    examId = Integer.parseInt(examIdText);
+                } catch (NumberFormatException ex) {
+                    JOptionPane.showMessageDialog(dialog, "Exam ID must be a number", "Validation Error", JOptionPane.WARNING_MESSAGE);
                     return;
                 }
 
@@ -226,7 +239,8 @@ public class AdminDashboard {
                 }
 
                 String data =
-                    "q=" + URLEncoder.encode(questionText, "UTF-8") +
+                    "examId=" + examId +
+                    "&q=" + URLEncoder.encode(questionText, "UTF-8") +
                     "&a=" + URLEncoder.encode(optionA, "UTF-8") +
                     "&b=" + URLEncoder.encode(optionB, "UTF-8") +
                     "&c=" + URLEncoder.encode(optionC, "UTF-8") +

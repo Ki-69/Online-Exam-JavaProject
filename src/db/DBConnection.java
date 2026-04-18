@@ -7,7 +7,7 @@ public class DBConnection {
 
     public static Connection getConnection() throws Exception {
 
-        String url = "jdbc:mysql://localhost:3306/online_exam";
+        String url = "jdbc:mysql://localhost:3306/online_exam_v2";
         String user = "root";
         String password = "tsukasa911";
 

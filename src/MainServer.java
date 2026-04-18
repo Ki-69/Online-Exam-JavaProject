@@ -10,6 +10,8 @@ public class MainServer {
 
             server.createContext("/login", new AuthHandler());
             server.createContext("/startExam", new ExamHandler());
+            server.createContext("/courses", new CourseHandler());
+            server.createContext("/exams", new ExamListHandler());
             server.createContext("/submitAnswers", new ResultHandler());
 
             server.createContext("/allResults", new AdminHandler());

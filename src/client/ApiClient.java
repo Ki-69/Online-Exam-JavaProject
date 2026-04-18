@@ -26,9 +26,29 @@ public class ApiClient {
         return new String(is.readAllBytes());
     }
 
-    public static String startExam() throws Exception {
+    public static String startExam(int examId) throws Exception {
 
-        URL url = new URL(BASE_URL + "/startExam");
+        URL url = new URL(BASE_URL + "/startExam?examId=" + examId);
+
+        HttpURLConnection con = (HttpURLConnection) url.openConnection();
+        con.setRequestMethod("GET");
+
+        InputStream is = con.getInputStream();
+        return new String(is.readAllBytes());
+    }
+
+    public static String getCourses() throws Exception {
+        URL url = new URL(BASE_URL + "/courses");
+
+        HttpURLConnection con = (HttpURLConnection) url.openConnection();
+        con.setRequestMethod("GET");
+
+        InputStream is = con.getInputStream();
+        return new String(is.readAllBytes());
+    }
+
+    public static String getExams(int courseId) throws Exception {
+        URL url = new URL(BASE_URL + "/exams?courseId=" + courseId);
 
         HttpURLConnection con = (HttpURLConnection) url.openConnection();
         con.setRequestMethod("GET");
