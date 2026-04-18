@@ -1,15 +1,14 @@
 package handler;
 
 import com.sun.net.httpserver.*;
-import service.ExamService;
-import model.Exam;
-
 import java.io.*;
 import java.net.URI;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-import java.util.Arrays;
+import model.Exam;
+import service.ExamService;
 
 public class ExamListHandler implements HttpHandler {
 

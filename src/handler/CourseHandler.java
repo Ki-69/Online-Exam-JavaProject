@@ -1,11 +1,10 @@
 package handler;
 
 import com.sun.net.httpserver.*;
-import service.CourseService;
-import model.Course;
-
 import java.io.*;
 import java.util.List;
+import model.Course;
+import service.CourseService;
 
 public class CourseHandler implements HttpHandler {
 
