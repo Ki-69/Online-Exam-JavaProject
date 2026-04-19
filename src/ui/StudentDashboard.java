@@ -1,358 +1,348 @@
 package ui;
 
 import client.ApiClient;
-
-import javax.swing.*;
 import java.awt.*;
-import java.io.OutputStream;
-import java.net.HttpURLConnection;
-import java.net.URL;
-
-import java.util.ArrayList;
-import java.util.Enumeration;
-import java.util.HashMap;
+import java.awt.event.ActionListener;
+import java.util.*;
 import java.util.List;
-import java.util.Map;
-import java.util.Scanner;
+import javax.swing.*;
+import model.Course;
+import model.Exam;
+import service.CourseService;
+import service.ExamService;
 
+/**
+ * Modern Course Dashboard - Beautiful card-based grid layout with gradient backgrounds
+ * Features smooth transitions between course, detail, and exam screens
+ */
 public class StudentDashboard {
 
-    private List<ButtonGroup> answerGroups = new ArrayList<>();
-    private List<Integer> questionIds = new ArrayList<>();
     private JFrame frame;
-    private JPanel questionPanel;
-    private JComboBox<String> courseCombo;
-    private JComboBox<String> examCombo;
-    private final Map<Integer, Integer> courseMap = new HashMap<>();
-    private final Map<Integer, Integer> examMap = new HashMap<>();
+    private int studentId;
+    private List<Course> courses = new ArrayList<>();
+    private CardLayout cardLayout;
+    private JPanel mainPanel;
+    private CourseService courseService;
+    private ExamService examService;
+    private JPanel courseGridPanel;  // Persistent reference to course grid
 
     public StudentDashboard(int studentId) {
+        this.studentId = studentId;
+        this.courseService = new CourseService();
+        this.examService = new ExamService();
 
-        frame = new JFrame("ExamHub - Student Exam Portal");
-        frame.setSize(1100, 750);
+        // Main Frame
+        frame = new JFrame("ExamHub - Student Dashboard");
+        frame.setSize(1400, 900);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setLocationRelativeTo(null);
         frame.setResizable(false);
+        frame.setBackground(UITheme.BG_PRIMARY);
 
-        // Header Panel
+        // Main Panel with CardLayout for view switching
+        cardLayout = new CardLayout();
+        mainPanel = new JPanel(cardLayout);
+        mainPanel.setBackground(UITheme.BG_PRIMARY);
+
+        // Create Course Dashboard View - returns the grid panel
+        JPanel courseCarouselView = createCourseCarouselView();
+        mainPanel.add(courseCarouselView, "CAROUSEL");
+
+        frame.add(mainPanel);
+        frame.setVisible(true);
+
+        // Load courses
+        loadCourses();
+    }
+
+    /**
+     * Create the main course carousel/grid view
+     */
+    private JPanel createCourseCarouselView() {
+        JPanel containerPanel = new JPanel(new BorderLayout());
+        containerPanel.setBackground(UITheme.BG_PRIMARY);
+
+        // ===== HEADER SECTION =====
         JPanel headerPanel = new JPanel();
         headerPanel.setBackground(UITheme.PRIMARY_COLOR);
         headerPanel.setLayout(new BorderLayout());
-        headerPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        headerPanel.setBorder(BorderFactory.createEmptyBorder(28, 28, 28, 28));
 
-        ImageIcon headerImg = UITheme.loadIcon("/assets/notes.png", 36);
-        JLabel headerIcon = (headerImg != null) ? new JLabel(headerImg) : new JLabel("📝");
-        if (headerImg == null) headerIcon.setFont(UITheme.getPreferredFont("Segoe UI", Font.PLAIN, 36));
-        
-        JLabel headerTitle = new JLabel("Exam Portal");
-        headerTitle.setFont(UITheme.FONT_TITLE_MEDIUM);
+        // Left section: Title
+        JPanel leftSection = new JPanel(new BorderLayout(0, 10));
+        leftSection.setOpaque(false);
+
+        JLabel headerTitle = new JLabel("My Courses");
+        headerTitle.setFont(UITheme.getPreferredFont("Segoe UI", Font.BOLD, 40));
         headerTitle.setForeground(Color.WHITE);
 
-        JLabel studentInfo = new JLabel("Student ID: " + studentId);
-        studentInfo.setFont(UITheme.FONT_LABEL);
-        studentInfo.setForeground(new Color(200, 220, 255));
+        JLabel subheader = new JLabel("Select a course to view and take exams");
+        subheader.setFont(UITheme.getPreferredFont("Segoe UI", Font.PLAIN, 14));
+        subheader.setForeground(new Color(200, 220, 255));
 
-        JPanel headerLeft = new JPanel(new BorderLayout(10, 0));
-        headerLeft.setOpaque(false);
-        headerLeft.add(headerIcon, BorderLayout.WEST);
-        
-        JPanel titlePanel = new JPanel(new BorderLayout());
-        titlePanel.setOpaque(false);
-        titlePanel.add(headerTitle, BorderLayout.NORTH);
-        titlePanel.add(studentInfo, BorderLayout.SOUTH);
-        headerLeft.add(titlePanel, BorderLayout.CENTER);
+        leftSection.add(headerTitle, BorderLayout.NORTH);
+        leftSection.add(subheader, BorderLayout.SOUTH);
 
-        headerPanel.add(headerLeft, BorderLayout.WEST);
-
-        // Selection Panel for Courses and Exams
-        JPanel selectionPanel = new JPanel();
-        selectionPanel.setBackground(UITheme.BG_SECONDARY);
-        selectionPanel.setLayout(new FlowLayout(FlowLayout.LEFT, 18, 16));
-        selectionPanel.setBorder(BorderFactory.createEmptyBorder(15, 20, 15, 20));
-
-        JLabel courseLabel = new JLabel("Course:");
-        courseLabel.setFont(UITheme.FONT_LABEL);
-        courseLabel.setForeground(UITheme.TEXT_PRIMARY);
-        selectionPanel.add(courseLabel);
-
-        courseCombo = new JComboBox<>();
-        courseCombo.setPreferredSize(new Dimension(280, 36));
-        selectionPanel.add(courseCombo);
-
-        JLabel examLabel = new JLabel("Exam:");
-        examLabel.setFont(UITheme.FONT_LABEL);
-        examLabel.setForeground(UITheme.TEXT_PRIMARY);
-        selectionPanel.add(examLabel);
-
-        examCombo = new JComboBox<>();
-        examCombo.setPreferredSize(new Dimension(280, 36));
-        selectionPanel.add(examCombo);
-
-        JButton refreshButton = UITheme.createPrimaryButton("⟳ Refresh");
-        selectionPanel.add(refreshButton);
-
-        courseCombo.addActionListener(e -> {
-            Integer selectedIndex = courseCombo.getSelectedIndex();
-            if (selectedIndex >= 0) {
-                Integer courseId = courseMap.get(selectedIndex);
-                if (courseId != null) {
-                    loadExams(courseId);
-                }
-            }
+        // Right section: Logout button
+        JButton logoutBtn = createHeaderButton("Logout", UITheme.ACCENT_RED, e -> {
+            frame.dispose();
+            new LoginUI();
         });
 
-        refreshButton.addActionListener(e -> loadCourses());
+        headerPanel.add(leftSection, BorderLayout.WEST);
+        headerPanel.add(logoutBtn, BorderLayout.EAST);
 
-        JPanel buttonPanel = new JPanel();
-        buttonPanel.setBackground(UITheme.BG_SECONDARY);
-        buttonPanel.setLayout(new FlowLayout(FlowLayout.CENTER, 15, 15));
-        buttonPanel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
+        containerPanel.add(headerPanel, BorderLayout.NORTH);
 
-        JButton startButton = UITheme.createSuccessButton("▶ Start Exam");
-        JButton submitButton = UITheme.createDangerButton("✓ Submit Answers");
+        // ===== COURSE GRID SECTION =====
+        courseGridPanel = new JPanel();
+        courseGridPanel.setBackground(UITheme.BG_PRIMARY);
+        courseGridPanel.setLayout(new FlowLayout(FlowLayout.LEFT, 28, 28));
+        courseGridPanel.setBorder(BorderFactory.createEmptyBorder(28, 28, 28, 28));
 
-        buttonPanel.add(startButton);
-        buttonPanel.add(submitButton);
-
-        // Questions Container
-        questionPanel = new JPanel();
-        questionPanel.setLayout(new BoxLayout(questionPanel, BoxLayout.Y_AXIS));
-        questionPanel.setBackground(UITheme.BG_PRIMARY);
-        questionPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
-
-        JScrollPane scrollPane = new JScrollPane(questionPanel);
+        JScrollPane scrollPane = new JScrollPane(courseGridPanel);
         scrollPane.setBackground(UITheme.BG_PRIMARY);
         scrollPane.getViewport().setBackground(UITheme.BG_PRIMARY);
-        scrollPane.setBorder(BorderFactory.createLineBorder(UITheme.BORDER_COLOR, 1));
+        scrollPane.setBorder(null);
+        scrollPane.getVerticalScrollBar().setUnitIncrement(15);
 
-        JPanel topPanel = new JPanel();
-        topPanel.setLayout(new BorderLayout());
-        topPanel.add(headerPanel, BorderLayout.NORTH);
-        topPanel.add(selectionPanel, BorderLayout.SOUTH);
+        containerPanel.add(scrollPane, BorderLayout.CENTER);
 
-        frame.setLayout(new BorderLayout());
-        frame.add(topPanel, BorderLayout.NORTH);
-        frame.add(buttonPanel, BorderLayout.SOUTH);
-        frame.add(scrollPane, BorderLayout.CENTER);
+        return containerPanel;
+    }
 
-        loadCourses();
-
-        // START EXAM EVENT
-        startButton.addActionListener(e -> {
-            try {
-                int selectedExamIndex = examCombo.getSelectedIndex();
-                if (selectedExamIndex < 0) {
-                    JOptionPane.showMessageDialog(frame, "Please select an exam before starting.", "No Exam Selected", JOptionPane.WARNING_MESSAGE);
-                    return;
-                }
-
-                Integer examId = examMap.get(selectedExamIndex);
-                if (examId == null) {
-                    JOptionPane.showMessageDialog(frame, "Please choose a valid exam.", "Invalid Exam", JOptionPane.WARNING_MESSAGE);
-                    return;
-                }
-
-                questionPanel.removeAll();
-                answerGroups.clear();
-                questionIds.clear();
-
-                String response = ApiClient.startExam(examId);
-                String[] questions = response.split("\n");
-
-                int questionNumber = 1;
-                for (String q : questions) {
-                    if (q.isBlank()) continue;
-                    String[] parts = q.split("\\|");
-                    if (parts.length < 6) continue;
-
-                    int qId = Integer.parseInt(parts[0]);
-                    questionIds.add(qId);
-
-                    JPanel qPanel = createQuestionPanel(parts, questionNumber++);
-                    questionPanel.add(qPanel);
-                    questionPanel.add(Box.createVerticalStrut(15));
-                }
-
-                questionPanel.revalidate();
-                questionPanel.repaint();
-
-            } catch (Exception ex) {
-                JOptionPane.showMessageDialog(frame, "Error loading questions", "Error", JOptionPane.ERROR_MESSAGE);
+    /**
+     * Load all courses for the student
+     */
+    private void loadCourses() {
+        new SwingWorker<List<Course>, Void>() {
+            @Override
+            protected List<Course> doInBackground() throws Exception {
+                return courseService.getAllCourses();
             }
-        });
 
-        // SUBMIT ANSWERS EVENT
-        submitButton.addActionListener(e -> {
-            try {
-                if (questionIds.isEmpty()) {
-                    JOptionPane.showMessageDialog(frame, "Please start the exam first", "No Exam Started", JOptionPane.WARNING_MESSAGE);
-                    return;
+            @Override
+            protected void done() {
+                try {
+                    courses = get();
+                    
+                    courseGridPanel.removeAll();
+
+                    // Color palette for course cards
+                    Color[] cardColors = {
+                        new Color(100, 150, 255),   // Blue
+                        new Color(255, 120, 100),   // Coral
+                        new Color(100, 200, 150),   // Green
+                        new Color(255, 180, 100),   // Orange
+                        new Color(180, 100, 200),   // Purple
+                        new Color(100, 180, 200)    // Cyan
+                    };
+
+                    for (int i = 0; i < courses.size(); i++) {
+                        Course course = courses.get(i);
+                        Color cardColor = cardColors[i % cardColors.length];
+                        JPanel courseCard = createCourseCard(course, cardColor);
+                        courseGridPanel.add(courseCard);
+                    }
+
+                    courseGridPanel.revalidate();
+                    courseGridPanel.repaint();
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(frame, 
+                        "Error loading courses: " + ex.getMessage(), 
+                        "Error", JOptionPane.ERROR_MESSAGE);
                 }
-                
-                StringBuilder answerData = new StringBuilder();
+            }
+        }.execute();
+    }
 
-                for (int i = 0; i < answerGroups.size(); i++) {
-                    ButtonGroup group = answerGroups.get(i);
-                    Enumeration<AbstractButton> buttons = group.getElements();
-                    String selected = "";
+    /**
+     * Create a modern gradient course card with progress indicator
+     */
+    private JPanel createCourseCard(Course course, Color baseColor) {
+        // Card with custom painting for gradient background
+        JPanel card = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2d = (Graphics2D) g;
+                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
 
-                    while (buttons.hasMoreElements()) {
-                        AbstractButton btn = buttons.nextElement();
-                        if (btn.isSelected()) {
-                            selected = btn.getText().substring(0, 1);
+                // Subtle shadow
+                g2d.setColor(new Color(0, 0, 0, 15));
+                g2d.fillRoundRect(3, 3, getWidth() - 6, getHeight() - 6, 20, 20);
+
+                // Gradient fill
+                GradientPaint gradient = new GradientPaint(
+                    0, 0, baseColor,
+                    0, getHeight(), baseColor.darker()
+                );
+                g2d.setPaint(gradient);
+                g2d.fillRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 18, 18);
+
+                // Border highlight
+                g2d.setColor(new Color(255, 255, 255, 90));
+                g2d.setStroke(new BasicStroke(2f));
+                g2d.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 18, 18);
+
+                super.paintComponent(g);
+            }
+        };
+
+        card.setPreferredSize(new Dimension(310, 210));
+        card.setMaximumSize(new Dimension(310, 210));
+        card.setLayout(new BorderLayout());
+        card.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        card.setOpaque(false);
+        card.setCursor(new Cursor(Cursor.HAND_CURSOR));
+
+        // Progress bar at top
+        JPanel progressSection = new JPanel();
+        progressSection.setOpaque(false);
+        progressSection.setMaximumSize(new Dimension(Integer.MAX_VALUE, 6));
+
+        JProgressBar progressBar = new JProgressBar(0, 100);
+        progressBar.setBackground(new Color(255, 255, 255, 30));
+        progressBar.setForeground(Color.WHITE);
+        progressBar.setOpaque(false);
+        progressBar.setBorder(null);
+        progressBar.setStringPainted(false);
+        progressSection.add(progressBar);
+
+        card.add(progressSection, BorderLayout.NORTH);
+
+        // Center content
+        JPanel contentPanel = new JPanel();
+        contentPanel.setOpaque(false);
+        contentPanel.setLayout(new BoxLayout(contentPanel, BoxLayout.Y_AXIS));
+
+        JLabel titleLabel = new JLabel(course.getTitle());
+        titleLabel.setFont(UITheme.getPreferredFont("Segoe UI", Font.BOLD, 20));
+        titleLabel.setForeground(Color.WHITE);
+        titleLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        titleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        JLabel subtitleLabel = new JLabel("Semester 1, 2024");
+        subtitleLabel.setFont(UITheme.getPreferredFont("Segoe UI", Font.PLAIN, 12));
+        subtitleLabel.setForeground(new Color(220, 220, 220));
+        subtitleLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        subtitleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        contentPanel.add(Box.createVerticalGlue());
+        contentPanel.add(titleLabel);
+        contentPanel.add(Box.createVerticalStrut(8));
+        contentPanel.add(subtitleLabel);
+        contentPanel.add(Box.createVerticalGlue());
+
+        card.add(contentPanel, BorderLayout.CENTER);
+
+        // Progress text at bottom (dynamically updated)
+        JLabel progressLabel = new JLabel("Loading progress...");
+        progressLabel.setFont(UITheme.getPreferredFont("Segoe UI", Font.PLAIN, 11));
+        progressLabel.setForeground(new Color(220, 220, 220));
+        progressLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        card.add(progressLabel, BorderLayout.SOUTH);
+
+        // Calculate actual progress based on completed exams
+        new SwingWorker<Integer, Void>() {
+            @Override
+            protected Integer doInBackground() throws Exception {
+                try {
+                    List<Exam> allExams = examService.getExamsByCourseId(course.getCourseId());
+                    if (allExams.isEmpty()) return 0;
+                    
+                    int completedCount = 0;
+                    for (Exam exam : allExams) {
+                        try {
+                            String result = ApiClient.getResults(exam.getExamId(), studentId);
+                            if (result != null && !result.trim().isEmpty()) {
+                                completedCount++;
+                            }
+                        } catch (Exception e) {
+                            // Exam not completed
                         }
                     }
-
-                    if (!selected.isEmpty()) {
-                        answerData.append(questionIds.get(i))
-                                .append(":")
-                                .append(selected)
-                                .append(",");
-                    }
+                    
+                    return (int) ((completedCount * 100.0) / allExams.size());
+                } catch (Exception ex) {
+                    return 0;
                 }
-
-                if (answerData.length() > 0) {
-                    answerData.deleteCharAt(answerData.length() - 1);
+            }
+            
+            @Override
+            protected void done() {
+                try {
+                    int progress = get();
+                    progressBar.setValue(progress);
+                    progressLabel.setText(progress + "% complete");
+                    card.repaint();
+                } catch (Exception ex) {
+                    progressLabel.setText("0% complete");
                 }
+            }
+        }.execute();
 
-                int selectedExamIndex = examCombo.getSelectedIndex();
-                if (selectedExamIndex < 0 || !examMap.containsKey(selectedExamIndex)) {
-                    JOptionPane.showMessageDialog(frame, "Please select an exam before submitting.", "No Exam Selected", JOptionPane.WARNING_MESSAGE);
-                    return;
-                }
-
-                int examId = examMap.get(selectedExamIndex);
-                String data = "studentId=" + studentId + "&examId=" + examId + "&answers=" + answerData;
-
-                URL url = new URL("http://localhost:8080/submitAnswers");
-                HttpURLConnection con = (HttpURLConnection) url.openConnection();
-                con.setRequestMethod("POST");
-                con.setDoOutput(true);
-
-                OutputStream os = con.getOutputStream();
-                os.write(data.getBytes());
-                os.close();
-
-                Scanner sc = new Scanner(con.getInputStream());
-                String response = sc.nextLine();
-
-                JOptionPane.showMessageDialog(frame, response, "Exam Submitted", JOptionPane.INFORMATION_MESSAGE);
-
-            } catch (Exception ex) {
-                JOptionPane.showMessageDialog(frame, "Error: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+        // Click handler
+        card.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                showCourseDetail(course);
             }
         });
 
-        frame.setVisible(true);
+        return card;
     }
 
-    private void loadCourses() {
-        try {
-            courseMap.clear();
-            courseCombo.removeAllItems();
-
-            String response = ApiClient.getCourses();
-            String[] lines = response.split("\n");
-            int index = 0;
-
-            for (String line : lines) {
-                if (line.isBlank()) continue;
-                String[] parts = line.split("\\|");
-                if (parts.length < 2) continue;
-
-                int courseId = Integer.parseInt(parts[0]);
-                String title = parts[1];
-                courseCombo.addItem(title);
-                courseMap.put(index++, courseId);
+    /**
+     * Show course detail view with available and completed exams
+     */
+    private void showCourseDetail(Course course) {
+        new SwingWorker<JPanel, Void>() {
+            @Override
+            protected JPanel doInBackground() throws Exception {
+                return new CourseDetailPanel(
+                    StudentDashboard.this, 
+                    course, 
+                    studentId,
+                    examService
+                );
             }
 
-            if (courseCombo.getItemCount() > 0) {
-                courseCombo.setSelectedIndex(0);
-                if (courseMap.containsKey(0)) {
-                    loadExams(courseMap.get(0));
+            @Override
+            protected void done() {
+                try {
+                    JPanel detailPanel = get();
+                    mainPanel.add(detailPanel, "DETAIL");
+                    cardLayout.show(mainPanel, "DETAIL");
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(frame, 
+                        "Error: " + ex.getMessage(), 
+                        "Error", JOptionPane.ERROR_MESSAGE);
                 }
             }
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(frame, "Error loading courses", "Error", JOptionPane.ERROR_MESSAGE);
-        }
+        }.execute();
     }
 
-    private void loadExams(int courseId) {
-        try {
-            examMap.clear();
-            examCombo.removeAllItems();
-
-            String response = ApiClient.getExams(courseId);
-            String[] lines = response.split("\n");
-            int index = 0;
-
-            for (String line : lines) {
-                if (line.isBlank()) continue;
-                String[] parts = line.split("\\|");
-                if (parts.length < 2) continue;
-
-                int examId = Integer.parseInt(parts[0]);
-                String title = parts[1];
-                examCombo.addItem(title);
-                examMap.put(index++, examId);
-            }
-
-            if (examCombo.getItemCount() > 0) {
-                examCombo.setSelectedIndex(0);
-            }
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(frame, "Error loading exams", "Error", JOptionPane.ERROR_MESSAGE);
-        }
+    /**
+     * Navigate back to course carousel
+     */
+    public void backToCourses() {
+        cardLayout.show(mainPanel, "CAROUSEL");
+        loadCourses();
     }
 
-    private JPanel createQuestionPanel(String[] parts, int questionNumber) {
-        JPanel card = UITheme.createCardPanel();
-        card.setMaximumSize(new Dimension(Integer.MAX_VALUE, Integer.MAX_VALUE));
-
-        JPanel qPanel = new JPanel();
-        qPanel.setLayout(new BoxLayout(qPanel, BoxLayout.Y_AXIS));
-        qPanel.setOpaque(false);
-        qPanel.setBorder(BorderFactory.createEmptyBorder(6, 6, 6, 6));
-
-        JLabel questionNum = new JLabel("Question " + questionNumber);
-        questionNum.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        questionNum.setForeground(UITheme.PRIMARY_COLOR);
-
-        JLabel questionLabel = new JLabel("<html>" + parts[1] + "</html>");
-        questionLabel.setFont(UITheme.FONT_BODY);
-        questionLabel.setForeground(UITheme.TEXT_PRIMARY);
-
-        JRadioButton a = new JRadioButton("A. " + parts[2]);
-        JRadioButton b = new JRadioButton("B. " + parts[3]);
-        JRadioButton c = new JRadioButton("C. " + parts[4]);
-        JRadioButton d = new JRadioButton("D. " + parts[5]);
-
-        for (JRadioButton btn : new JRadioButton[]{a, b, c, d}) {
-            btn.setFont(UITheme.FONT_BODY);
-            btn.setBackground(UITheme.BG_TERTIARY);
-            btn.setForeground(UITheme.TEXT_PRIMARY);
-            btn.setFocusPainted(false);
-            btn.setBorder(BorderFactory.createEmptyBorder(8, 0, 8, 0));
-            btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        }
-
-        ButtonGroup group = new ButtonGroup();
-        group.add(a);
-        group.add(b);
-        group.add(c);
-        group.add(d);
-        answerGroups.add(group);
-
-        qPanel.add(questionNum);
-        qPanel.add(Box.createVerticalStrut(8));
-        qPanel.add(questionLabel);
-        qPanel.add(Box.createVerticalStrut(12));
-        qPanel.add(a);
-        qPanel.add(b);
-        qPanel.add(c);
-        qPanel.add(d);
-
-        card.add(qPanel, BorderLayout.CENTER);
-        return card;
+    /**
+     * Create header button with modern styling
+     */
+    private JButton createHeaderButton(String text, Color bgColor, ActionListener listener) {
+        JButton btn = new JButton(text);
+        btn.setFont(UITheme.getPreferredFont("Segoe UI", Font.BOLD, 13));
+        btn.setBackground(bgColor);
+        btn.setForeground(Color.WHITE);
+        btn.setBorder(BorderFactory.createEmptyBorder(10, 22, 10, 22));
+        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btn.setFocusPainted(false);
+        btn.addActionListener(listener);
+        return btn;
     }
 }

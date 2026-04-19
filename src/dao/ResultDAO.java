@@ -1,6 +1,7 @@
 package dao;
 
 import db.DBConnection;
+import model.Result;
 
 import java.sql.*;
 import java.util.ArrayList;
@@ -56,6 +57,73 @@ public class ResultDAO {
             con.close();
             
             return list;
+        } catch (Exception e) {
+            con.close();
+            throw e;
+        }
+    }
+
+    /**
+     * Get all results for a specific exam and student
+     */
+    public List<Result> getResultsByExamAndStudent(int examId, int studentId) throws Exception {
+        Connection con = DBConnection.getConnection();
+
+        try {
+            String query = "SELECT result_id, student_id, exam_id, score FROM results WHERE exam_id = ? AND student_id = ? ORDER BY result_id DESC";
+            PreparedStatement ps = con.prepareStatement(query);
+            ps.setInt(1, examId);
+            ps.setInt(2, studentId);
+
+            ResultSet rs = ps.executeQuery();
+
+            List<Result> results = new ArrayList<>();
+
+            while (rs.next()) {
+                Result result = new Result(
+                    rs.getInt("result_id"),
+                    rs.getInt("student_id"),
+                    rs.getInt("exam_id"),
+                    rs.getInt("score")
+                );
+                results.add(result);
+            }
+
+            rs.close();
+            ps.close();
+            con.close();
+
+            return results;
+        } catch (Exception e) {
+            con.close();
+            throw e;
+        }
+    }
+
+    /**
+     * Check if student has taken an exam
+     */
+    public boolean hasStudentTakenExam(int examId, int studentId) throws Exception {
+        Connection con = DBConnection.getConnection();
+
+        try {
+            String query = "SELECT COUNT(*) as count FROM results WHERE exam_id = ? AND student_id = ?";
+            PreparedStatement ps = con.prepareStatement(query);
+            ps.setInt(1, examId);
+            ps.setInt(2, studentId);
+
+            ResultSet rs = ps.executeQuery();
+            boolean hasResult = false;
+
+            if (rs.next()) {
+                hasResult = rs.getInt("count") > 0;
+            }
+
+            rs.close();
+            ps.close();
+            con.close();
+
+            return hasResult;
         } catch (Exception e) {
             con.close();
             throw e;

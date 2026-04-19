@@ -126,31 +126,54 @@ public class LoginUI {
             frame.add(mainPanel);
 
             loginButton.addActionListener(e -> {
-                try {
-                    String username = userField.getText().trim();
-                    String password = new String(passField.getPassword());
+                String username = userField.getText().trim();
+                String password = new String(passField.getPassword());
 
-                    if (username.isEmpty() || password.isEmpty()) {
-                        JOptionPane.showMessageDialog(frame, "Please enter both username and password", "Validation Error", JOptionPane.WARNING_MESSAGE);
-                        return;
-                    }
-
-                    String response = ApiClient.login(username, password);
-                    String[] parts = response.split(",");
-                    int userId = Integer.parseInt(parts[0]);
-                    String role = parts[1];
-
-                    frame.dispose();
-
-                    if (role.equals("STUDENT")) {
-                        new StudentDashboard(userId);
-                    } else if (role.equals("ADMIN")) {
-                        new AdminDashboard();
-                    }
-
-                } catch (Exception ex) {
-                    JOptionPane.showMessageDialog(frame, "Invalid credentials", "Login Failed", JOptionPane.ERROR_MESSAGE);
+                if (username.isEmpty() || password.isEmpty()) {
+                    JOptionPane.showMessageDialog(frame, "Please enter both username and password", "Validation Error", JOptionPane.WARNING_MESSAGE);
+                    return;
                 }
+
+                // Disable button during login attempt
+                loginButton.setEnabled(false);
+                loginButton.setText("⏳ Logging in...");
+
+                // Use SwingWorker to perform HTTP request on background thread
+                SwingWorker<String[], Void> worker = new SwingWorker<String[], Void>() {
+                    @Override
+                    protected String[] doInBackground() throws Exception {
+                        String response = ApiClient.login(username, password);
+                        return response.split(",");
+                    }
+
+                    @Override
+                    protected void done() {
+                        try {
+                            String[] parts = get();
+                            int userId = Integer.parseInt(parts[0]);
+                            String role = parts[1];
+
+                            frame.dispose();
+
+                            if (role.equals("STUDENT")) {
+                                new StudentDashboard(userId);
+                            } else if (role.equals("ADMIN")) {
+                                new AdminDashboard();
+                            } else if (role.equals("TEACHER")) {
+                                // TODO: Create TeacherDashboard
+                                JOptionPane.showMessageDialog(null, "Teacher dashboard not yet implemented", "Coming Soon", JOptionPane.INFORMATION_MESSAGE);
+                            }
+
+                        } catch (Exception ex) {
+                            loginButton.setEnabled(true);
+                            loginButton.setText("🔓 Sign In");
+                            JOptionPane.showMessageDialog(frame, "Invalid credentials or server not responding\n\nMake sure the server is running on port 8080", "Login Failed", JOptionPane.ERROR_MESSAGE);
+                            ex.printStackTrace();
+                        }
+                    }
+                };
+
+                worker.execute();
             });
 
             frame.setVisible(true);
