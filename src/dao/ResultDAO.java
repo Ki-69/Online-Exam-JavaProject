@@ -13,12 +13,26 @@ public class ResultDAO {
         Connection con = DBConnection.getConnection();
 
         try {
-            String query = "INSERT INTO results (student_id, exam_id, score) VALUES (?, ?, ?)";
+            String attemptQuery = "SELECT COALESCE(MAX(attempt_number), 0) + 1 AS next_attempt " +
+                                  "FROM results WHERE student_id = ? AND exam_id = ?";
+            PreparedStatement attemptPs = con.prepareStatement(attemptQuery);
+            attemptPs.setInt(1, studentId);
+            attemptPs.setInt(2, examId);
 
+            ResultSet attemptRs = attemptPs.executeQuery();
+            int attemptNumber = 1;
+            if (attemptRs.next()) {
+                attemptNumber = attemptRs.getInt("next_attempt");
+            }
+            attemptRs.close();
+            attemptPs.close();
+
+            String query = "INSERT INTO results (student_id, exam_id, score, attempt_number) VALUES (?, ?, ?, ?)";
             PreparedStatement ps = con.prepareStatement(query);
             ps.setInt(1, studentId);
             ps.setInt(2, examId);
             ps.setInt(3, score);
+            ps.setInt(4, attemptNumber);
 
             ps.executeUpdate();
             ps.close();
@@ -34,7 +48,7 @@ public class ResultDAO {
         Connection con = DBConnection.getConnection();
 
         try {
-            String query = "SELECT r.student_id, r.exam_id, r.score, e.exam_name AS exam_title, c.course_name AS course_title " +
+            String query = "SELECT r.student_id, r.exam_id, r.score, r.attempt_number, e.exam_name AS exam_title, c.course_name AS course_title " +
                            "FROM results r " +
                            "LEFT JOIN exams e ON r.exam_id = e.exam_id " +
                            "LEFT JOIN courses c ON e.course_id = c.course_id";
@@ -48,6 +62,7 @@ public class ResultDAO {
                 String row = "Student ID: " + rs.getInt("student_id") +
                              " | Course: " + rs.getString("course_title") +
                              " | Exam: " + rs.getString("exam_title") +
+                             " | Attempt: " + rs.getInt("attempt_number") +
                              " | Score: " + rs.getInt("score");
                 list.add(row);
             }
@@ -70,7 +85,7 @@ public class ResultDAO {
         Connection con = DBConnection.getConnection();
 
         try {
-            String query = "SELECT result_id, student_id, exam_id, score FROM results WHERE exam_id = ? AND student_id = ? ORDER BY result_id DESC";
+            String query = "SELECT student_id, exam_id, attempt_number, score FROM results WHERE exam_id = ? AND student_id = ? ORDER BY attempt_number ASC";
             PreparedStatement ps = con.prepareStatement(query);
             ps.setInt(1, examId);
             ps.setInt(2, studentId);
@@ -81,9 +96,9 @@ public class ResultDAO {
 
             while (rs.next()) {
                 Result result = new Result(
-                    rs.getInt("result_id"),
                     rs.getInt("student_id"),
                     rs.getInt("exam_id"),
+                    rs.getInt("attempt_number"),
                     rs.getInt("score")
                 );
                 results.add(result);

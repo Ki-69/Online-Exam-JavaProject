@@ -1,296 +1,623 @@
 package ui;
 
+import client.ApiClient;
 import java.awt.*;
-import java.io.*;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.net.URLEncoder;
-import java.util.Scanner;
+import java.awt.event.ActionListener;
 import javax.swing.*;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 public class AdminDashboard {
 
-    public AdminDashboard() {
+    private JFrame frame;
+    private CardLayout cardLayout;
+    private JPanel mainPanel;
+    private static final String MENU = "MENU";
+    private static final String ADD_COURSE = "ADD_COURSE";
+    private static final String ASSIGN_TEACHER = "ASSIGN_TEACHER";
+    private static final String ENROLL_STUDENT = "ENROLL_STUDENT";
+    private static final String VIEW_DATA = "VIEW_DATA";
 
-        JFrame frame = new JFrame("ExamHub - Admin Console");
-        frame.setSize(1200, 800);
+    public AdminDashboard() {
+        initializeUI();
+    }
+
+    private void initializeUI() {
+        frame = new JFrame("ExamHub - Admin Console");
+        frame.setSize(1400, 900);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setLocationRelativeTo(null);
-        frame.setResizable(false);
+        frame.setResizable(true);
 
-        // Header Panel
+        // Header
         JPanel headerPanel = new JPanel();
         headerPanel.setBackground(UITheme.ACCENT_RED);
         headerPanel.setLayout(new BorderLayout());
-        headerPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        headerPanel.setBorder(BorderFactory.createEmptyBorder(15, 20, 15, 20));
 
-        ImageIcon headerImg = UITheme.loadIcon("/assets/admin.png", 36);
-        JLabel headerIcon = (headerImg != null) ? new JLabel(headerImg) : new JLabel("⚙");
-        if (headerImg == null) headerIcon.setFont(UITheme.getPreferredFont("Segoe UI", Font.PLAIN, 36));
-        
         JLabel headerTitle = new JLabel("Admin Console");
-        headerTitle.setFont(UITheme.FONT_TITLE_MEDIUM);
+        headerTitle.setFont(UITheme.FONT_TITLE_LARGE);
         headerTitle.setForeground(Color.WHITE);
+        headerPanel.add(headerTitle, BorderLayout.WEST);
 
-        JPanel headerLeft = new JPanel(new BorderLayout(10, 0));
-        headerLeft.setOpaque(false);
-        headerLeft.add(headerIcon, BorderLayout.WEST);
-        headerLeft.add(headerTitle, BorderLayout.CENTER);
+        // Card layout for navigation
+        cardLayout = new CardLayout();
+        mainPanel = new JPanel(cardLayout);
+        mainPanel.setBackground(UITheme.BG_PRIMARY);
 
-        headerPanel.add(headerLeft, BorderLayout.WEST);
-
-        // Control Panel
-        JPanel controlPanel = new JPanel();
-        controlPanel.setBackground(UITheme.BG_SECONDARY);
-        controlPanel.setLayout(new FlowLayout(FlowLayout.CENTER, 15, 15));
-        controlPanel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
-
-        JButton viewBtn = UITheme.createSuccessButton("📊 View Results");
-        JButton addBtn = UITheme.createPrimaryButton("➕ Add Question");
-
-        controlPanel.add(viewBtn);
-        controlPanel.add(addBtn);
-
-        // Content Panel (elevated card)
-        JPanel contentPanel = UITheme.createCardPanel();
-
-        JLabel contentTitle = new JLabel("Results Dashboard");
-        contentTitle.setFont(UITheme.FONT_TITLE_SMALL);
-        contentTitle.setForeground(UITheme.TEXT_PRIMARY);
-        contentTitle.setBorder(BorderFactory.createEmptyBorder(0, 0, 15, 0));
-
-        // Table for results (clean, professional)
-        String[] cols = new String[]{"Student ID", "Score"};
-        javax.swing.table.DefaultTableModel tableModel = new javax.swing.table.DefaultTableModel(cols, 0) {
-            public boolean isCellEditable(int row, int column) { return false; }
-        };
-        JTable resultsTable = new JTable(tableModel);
-        resultsTable.setFillsViewportHeight(true);
-        resultsTable.setRowHeight(36);
-        resultsTable.getTableHeader().setFont(UITheme.FONT_LABEL);
-        resultsTable.setFont(UITheme.FONT_BODY);
-        resultsTable.setShowGrid(false);
-        resultsTable.setIntercellSpacing(new Dimension(0, 0));
-
-        JScrollPane scroll = new JScrollPane(resultsTable);
-        scroll.getViewport().setBackground(UITheme.BG_TERTIARY);
-        scroll.setBorder(BorderFactory.createEmptyBorder());
-
-        contentPanel.add(contentTitle, BorderLayout.NORTH);
-        contentPanel.add(scroll, BorderLayout.CENTER);
+        // Create all panels
+        mainPanel.add(createMenuPanel(), MENU);
+        mainPanel.add(createAddCoursePanel(), ADD_COURSE);
+        mainPanel.add(createAssignTeacherPanel(), ASSIGN_TEACHER);
+        mainPanel.add(createEnrollStudentPanel(), ENROLL_STUDENT);
+        mainPanel.add(createViewDataPanel(), VIEW_DATA);
 
         frame.setLayout(new BorderLayout());
         frame.add(headerPanel, BorderLayout.NORTH);
-        frame.add(controlPanel, BorderLayout.SOUTH);
-        frame.add(contentPanel, BorderLayout.CENTER);
+        frame.add(mainPanel, BorderLayout.CENTER);
 
-        // VIEW RESULTS EVENT
-        viewBtn.addActionListener(e -> {
-            try {
-                // clear table
-                tableModel.setRowCount(0);
-
-                URL url = new URL("http://localhost:8080/allResults");
-                HttpURLConnection con = (HttpURLConnection) url.openConnection();
-                con.setRequestMethod("GET");
-
-                Scanner sc = new Scanner(con.getInputStream());
-
-                while (sc.hasNextLine()) {
-                    String line = sc.nextLine().trim();
-                    if (line.isEmpty()) continue;
-
-                    // Expected format: "Student ID: <id> | Score: <score>"
-                    String[] parts = line.split("\\|");
-                    if (parts.length >= 2) {
-                        try {
-                            int sid = Integer.parseInt(parts[0].replaceAll("[^0-9]", ""));
-                            int scVal = Integer.parseInt(parts[1].replaceAll("[^0-9]", ""));
-                            tableModel.addRow(new Object[]{sid, scVal});
-                        } catch (NumberFormatException nfe) {
-                            tableModel.addRow(new Object[]{line, ""});
-                        }
-                    } else {
-                        tableModel.addRow(new Object[]{line, ""});
-                    }
-                }
-
-                sc.close();
-
-            } catch (Exception ex) {
-                JOptionPane.showMessageDialog(frame, "❌ Error loading results:\n" + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
-            }
-        });
-
-        // ADD QUESTION EVENT
-        addBtn.addActionListener(e -> {
-            showAddQuestionDialog(frame);
-        });
+        // Start with menu
+        cardLayout.show(mainPanel, MENU);
 
         frame.setVisible(true);
     }
 
-    private void showAddQuestionDialog(JFrame parentFrame) {
-        JDialog dialog = new JDialog(parentFrame, "Add New Question", true);
-        dialog.setSize(650, 600);
-        dialog.setLocationRelativeTo(parentFrame);
-        dialog.setResizable(false);
+    private JPanel createMenuPanel() {
+        JPanel panel = new JPanel(new GridBagLayout());
+        panel.setBackground(UITheme.BG_PRIMARY);
 
-        JPanel mainPanel = new JPanel();
-        mainPanel.setBackground(UITheme.BG_PRIMARY);
-        mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
-        mainPanel.setBorder(BorderFactory.createEmptyBorder(25, 25, 25, 25));
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(10, 10, 10, 10);
+        gbc.fill = GridBagConstraints.BOTH;
 
-        JLabel dialogTitle = new JLabel("➕ Create New Question");
-        dialogTitle.setFont(UITheme.FONT_TITLE_SMALL);
-        dialogTitle.setForeground(UITheme.PRIMARY_COLOR);
-        dialogTitle.setAlignmentX(Component.LEFT_ALIGNMENT);
+        // Title
+        JLabel titleLabel = new JLabel("Admin Management");
+        titleLabel.setFont(UITheme.FONT_TITLE_LARGE);
+        titleLabel.setForeground(UITheme.TEXT_PRIMARY);
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.gridwidth = 2;
+        gbc.ipady = 20;
+        panel.add(titleLabel, gbc);
 
-        mainPanel.add(dialogTitle);
-        mainPanel.add(Box.createVerticalStrut(20));
+        // Menu buttons
+        JButton addCourseBtn = createMenuButton("+ Add Course", e -> cardLayout.show(mainPanel, ADD_COURSE));
+        JButton assignTeacherBtn = createMenuButton("Assign Teacher to Course", e -> cardLayout.show(mainPanel, ASSIGN_TEACHER));
+        JButton enrollStudentBtn = createMenuButton("Enroll Student in Course", e -> cardLayout.show(mainPanel, ENROLL_STUDENT));
+        JButton viewDataBtn = createMenuButton("View Data", e -> cardLayout.show(mainPanel, VIEW_DATA));
 
-        JTextField q = UITheme.createTextField();
-        q.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
-        addFieldRow(mainPanel, "Question Text:", q);
+        gbc.gridwidth = 1;
+        gbc.gridy = 1;
+        gbc.ipady = 40;
+        panel.add(addCourseBtn, gbc);
 
-        JTextField examIdField = UITheme.createTextField();
-        examIdField.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
-        addFieldRow(mainPanel, "Exam ID:", examIdField);
+        gbc.gridy = 2;
+        panel.add(assignTeacherBtn, gbc);
 
-        JTextField a = UITheme.createTextField();
-        a.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
-        addFieldRow(mainPanel, "Option A:", a);
+        gbc.gridy = 3;
+        panel.add(enrollStudentBtn, gbc);
 
-        JTextField b = UITheme.createTextField();
-        b.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
-        addFieldRow(mainPanel, "Option B:", b);
+        gbc.gridy = 4;
+        panel.add(viewDataBtn, gbc);
 
-        JTextField c = UITheme.createTextField();
-        c.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
-        addFieldRow(mainPanel, "Option C:", c);
+        return panel;
+    }
 
-        JTextField d = UITheme.createTextField();
-        d.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
-        addFieldRow(mainPanel, "Option D:", d);
+    private JButton createMenuButton(String text, ActionListener listener) {
+        JButton btn = new JButton(text);
+        btn.setFont(new Font("Segoe UI", Font.PLAIN, 18));
+        btn.setPreferredSize(new Dimension(350, 80));
+        btn.setBackground(UITheme.PRIMARY_COLOR);
+        btn.setForeground(Color.WHITE);
+        btn.setBorder(BorderFactory.createLineBorder(UITheme.BORDER_COLOR, 1));
+        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btn.addActionListener(listener);
+        return btn;
+    }
 
-        JTextField correct = UITheme.createTextField();
-        correct.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
-        addFieldRow(mainPanel, "Correct Answer (A/B/C/D):", correct);
+    private JPanel createAddCoursePanel() {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBackground(UITheme.BG_PRIMARY);
+        panel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
 
-        JTextField marks = UITheme.createTextField();
-        marks.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
-        addFieldRow(mainPanel, "Marks:", marks);
+        // Back button
+        JButton backBtn = UITheme.createSecondaryButton("Back");
+        backBtn.addActionListener(e -> cardLayout.show(mainPanel, MENU));
 
-        mainPanel.add(Box.createVerticalStrut(20));
+        JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        topPanel.setOpaque(false);
+        topPanel.add(backBtn);
 
-        JPanel buttonPanel = new JPanel();
-        buttonPanel.setOpaque(false);
-        buttonPanel.setLayout(new FlowLayout(FlowLayout.CENTER, 10, 0));
-        buttonPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 50));
+        // Form panel
+        JPanel formPanel = UITheme.createCardPanel();
+        formPanel.setLayout(new BoxLayout(formPanel, BoxLayout.Y_AXIS));
+        formPanel.setMaximumSize(new Dimension(600, 400));
+        formPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
 
-        JButton submitBtn = UITheme.createSuccessButton("✓ Add Question");
-        JButton cancelBtn = UITheme.createDangerButton("✕ Cancel");
+        JLabel titleLabel = new JLabel("Create New Course");
+        titleLabel.setFont(UITheme.FONT_TITLE_SMALL);
 
-        buttonPanel.add(submitBtn);
-        buttonPanel.add(cancelBtn);
+        JLabel nameLabel = new JLabel("Course Name:");
+        JTextField nameField = new JTextField(30);
+        nameField.setFont(UITheme.FONT_BODY);
+        nameField.setPreferredSize(new Dimension(300, 40));
 
-        mainPanel.add(buttonPanel);
+        JLabel descLabel = new JLabel("Description:");
+        JTextArea descArea = new JTextArea(4, 30);
+        descArea.setFont(UITheme.FONT_BODY);
+        descArea.setLineWrap(true);
+        descArea.setWrapStyleWord(true);
 
-        JScrollPane scrollPane = new JScrollPane(mainPanel);
-        scrollPane.setBackground(UITheme.BG_PRIMARY);
-        scrollPane.getViewport().setBackground(UITheme.BG_PRIMARY);
-        dialog.add(scrollPane);
-
+        JButton submitBtn = UITheme.createPrimaryButton("Create Course");
         submitBtn.addActionListener(e -> {
             try {
-                String questionText = q.getText().trim();
-                String examIdText = examIdField.getText().trim();
-                String optionA = a.getText().trim();
-                String optionB = b.getText().trim();
-                String optionC = c.getText().trim();
-                String optionD = d.getText().trim();
-                String correctAns = correct.getText().trim().toUpperCase();
-                String marksStr = marks.getText().trim();
-
-                if (questionText.isEmpty() || examIdText.isEmpty() || optionA.isEmpty() || optionB.isEmpty() || 
-                    optionC.isEmpty() || optionD.isEmpty() || correctAns.isEmpty() || marksStr.isEmpty()) {
-                    JOptionPane.showMessageDialog(dialog, "All fields are required!", "Validation Error", JOptionPane.WARNING_MESSAGE);
+                String name = nameField.getText().trim();
+                String desc = descArea.getText().trim();
+                if (name.isEmpty()) {
+                    JOptionPane.showMessageDialog(frame, "Course name cannot be empty", "Error", JOptionPane.ERROR_MESSAGE);
                     return;
                 }
-
-                if (!correctAns.matches("[A-D]")) {
-                    JOptionPane.showMessageDialog(dialog, "Correct answer must be A, B, C, or D", "Validation Error", JOptionPane.WARNING_MESSAGE);
-                    return;
-                }
-
-                int examId;
-                try {
-                    examId = Integer.parseInt(examIdText);
-                } catch (NumberFormatException ex) {
-                    JOptionPane.showMessageDialog(dialog, "Exam ID must be a number", "Validation Error", JOptionPane.WARNING_MESSAGE);
-                    return;
-                }
-
-                try {
-                    Integer.parseInt(marksStr);
-                } catch (NumberFormatException ex) {
-                    JOptionPane.showMessageDialog(dialog, "Marks must be a number", "Validation Error", JOptionPane.WARNING_MESSAGE);
-                    return;
-                }
-
-                String data =
-                    "examId=" + examId +
-                    "&q=" + URLEncoder.encode(questionText, "UTF-8") +
-                    "&a=" + URLEncoder.encode(optionA, "UTF-8") +
-                    "&b=" + URLEncoder.encode(optionB, "UTF-8") +
-                    "&c=" + URLEncoder.encode(optionC, "UTF-8") +
-                    "&d=" + URLEncoder.encode(optionD, "UTF-8") +
-                    "&correct=" + URLEncoder.encode(correctAns, "UTF-8") +
-                    "&marks=" + marksStr;
-
-                URL url = new URL("http://localhost:8080/addQuestion");
-                HttpURLConnection con = (HttpURLConnection) url.openConnection();
-
-                con.setRequestMethod("POST");
-                con.setDoOutput(true);
-
-                OutputStream os = con.getOutputStream();
-                os.write(data.getBytes());
-                os.flush();
-                os.close();
-
-                int responseCode = con.getResponseCode();
-                if (responseCode == 200) {
-                    JOptionPane.showMessageDialog(dialog, "✓ Question added successfully!", "Success", JOptionPane.INFORMATION_MESSAGE);
-                    dialog.dispose();
+                String response = ApiClient.adminCreateCourse(name, desc);
+                JSONObject json = new JSONObject(response);
+                if (json.getBoolean("success")) {
+                    JOptionPane.showMessageDialog(frame, "Course created successfully!", "Success", JOptionPane.INFORMATION_MESSAGE);
+                    nameField.setText("");
+                    descArea.setText("");
                 } else {
-                    JOptionPane.showMessageDialog(dialog, "❌ Error adding question", "Error", JOptionPane.ERROR_MESSAGE);
+                    JOptionPane.showMessageDialog(frame, json.optString("error", "Unknown error"), "Error", JOptionPane.ERROR_MESSAGE);
                 }
-
             } catch (Exception ex) {
-                JOptionPane.showMessageDialog(dialog, "❌ Error: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(frame, "Error: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
             }
         });
 
-        cancelBtn.addActionListener(e -> dialog.dispose());
+        formPanel.add(titleLabel);
+        formPanel.add(Box.createVerticalStrut(15));
+        formPanel.add(nameLabel);
+        formPanel.add(Box.createVerticalStrut(5));
+        formPanel.add(nameField);
+        formPanel.add(Box.createVerticalStrut(15));
+        formPanel.add(descLabel);
+        formPanel.add(Box.createVerticalStrut(5));
+        formPanel.add(new JScrollPane(descArea));
+        formPanel.add(Box.createVerticalStrut(20));
+        formPanel.add(submitBtn);
 
+        panel.add(topPanel, BorderLayout.NORTH);
+        panel.add(formPanel, BorderLayout.CENTER);
+
+        return panel;
+    }
+
+    private JPanel createAssignTeacherPanel() {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBackground(UITheme.BG_PRIMARY);
+        panel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+
+        JButton backBtn = UITheme.createSecondaryButton("Back");
+        backBtn.addActionListener(e -> cardLayout.show(mainPanel, MENU));
+
+        JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        topPanel.setOpaque(false);
+        topPanel.add(backBtn);
+
+        JPanel formPanel = UITheme.createCardPanel();
+        formPanel.setLayout(new BoxLayout(formPanel, BoxLayout.Y_AXIS));
+        formPanel.setMaximumSize(new Dimension(600, 400));
+        formPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+
+        JLabel titleLabel = new JLabel("Assign Teacher to Course");
+        titleLabel.setFont(UITheme.FONT_TITLE_SMALL);
+
+        JLabel courseLabel = new JLabel("Select Course:");
+        JComboBox<String> courseDropdown = new JComboBox<>();
+        courseDropdown.setPreferredSize(new Dimension(300, 40));
+        populateCourses(courseDropdown);
+
+        JLabel teacherLabel = new JLabel("Select Teacher:");
+        JComboBox<String> teacherDropdown = new JComboBox<>();
+        teacherDropdown.setPreferredSize(new Dimension(300, 40));
+        populateTeachers(teacherDropdown);
+
+        JButton assignBtn = UITheme.createPrimaryButton("Assign Teacher");
+        assignBtn.addActionListener(e -> {
+            try {
+                String course = (String) courseDropdown.getSelectedItem();
+                String teacher = (String) teacherDropdown.getSelectedItem();
+                if (course == null || course.equals("Select Course...") || teacher == null || teacher.equals("Select Teacher...")) {
+                    JOptionPane.showMessageDialog(frame, "Please select both course and teacher", "Error", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+                int courseId = Integer.parseInt(course.split(" - ")[0]);
+                int teacherId = Integer.parseInt(teacher.split(" - ")[0]);
+                String response = ApiClient.adminAssignTeacher(courseId, teacherId);
+                JSONObject json = new JSONObject(response);
+                if (json.getBoolean("success")) {
+                    JOptionPane.showMessageDialog(frame, "Teacher assigned successfully!", "Success", JOptionPane.INFORMATION_MESSAGE);
+                } else {
+                    JOptionPane.showMessageDialog(frame, json.optString("error", "Unknown error"), "Error", JOptionPane.ERROR_MESSAGE);
+                }
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(frame, "Error: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            }
+        });
+
+        JButton refreshBtn = UITheme.createSecondaryButton("Refresh Lists");
+        refreshBtn.addActionListener(e -> {
+            populateCourses(courseDropdown);
+            populateTeachers(teacherDropdown);
+        });
+
+        formPanel.add(titleLabel);
+        formPanel.add(Box.createVerticalStrut(20));
+        formPanel.add(courseLabel);
+        formPanel.add(Box.createVerticalStrut(5));
+        formPanel.add(courseDropdown);
+        formPanel.add(Box.createVerticalStrut(15));
+        formPanel.add(teacherLabel);
+        formPanel.add(Box.createVerticalStrut(5));
+        formPanel.add(teacherDropdown);
+        formPanel.add(Box.createVerticalStrut(20));
+        formPanel.add(assignBtn);
+        formPanel.add(Box.createVerticalStrut(10));
+        formPanel.add(refreshBtn);
+
+        panel.add(topPanel, BorderLayout.NORTH);
+        panel.add(formPanel, BorderLayout.CENTER);
+
+        return panel;
+    }
+
+    private JPanel createEnrollStudentPanel() {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBackground(UITheme.BG_PRIMARY);
+        panel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+
+        JButton backBtn = UITheme.createSecondaryButton("Back");
+        backBtn.addActionListener(e -> cardLayout.show(mainPanel, MENU));
+
+        JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        topPanel.setOpaque(false);
+        topPanel.add(backBtn);
+
+        JPanel formPanel = UITheme.createCardPanel();
+        formPanel.setLayout(new BoxLayout(formPanel, BoxLayout.Y_AXIS));
+        formPanel.setMaximumSize(new Dimension(600, 400));
+        formPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+
+        JLabel titleLabel = new JLabel("Enroll Student in Course");
+        titleLabel.setFont(UITheme.FONT_TITLE_SMALL);
+
+        JLabel courseLabel = new JLabel("Select Course:");
+        JComboBox<String> courseDropdown = new JComboBox<>();
+        courseDropdown.setPreferredSize(new Dimension(300, 40));
+        populateCourses(courseDropdown);
+
+        JLabel studentLabel = new JLabel("Select Student:");
+        JComboBox<String> studentDropdown = new JComboBox<>();
+        studentDropdown.setPreferredSize(new Dimension(300, 40));
+        populateStudents(studentDropdown);
+
+        JButton enrollBtn = UITheme.createPrimaryButton("Enroll Student");
+        enrollBtn.addActionListener(e -> {
+            try {
+                String course = (String) courseDropdown.getSelectedItem();
+                String student = (String) studentDropdown.getSelectedItem();
+                if (course == null || course.equals("Select Course...") || student == null || student.equals("Select Student...")) {
+                    JOptionPane.showMessageDialog(frame, "Please select both course and student", "Error", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+                int courseId = Integer.parseInt(course.split(" - ")[0]);
+                int studentId = Integer.parseInt(student.split(" - ")[0]);
+                String response = ApiClient.adminEnrollStudent(courseId, studentId);
+                JSONObject json = new JSONObject(response);
+                if (json.getBoolean("success")) {
+                    JOptionPane.showMessageDialog(frame, "Student enrolled successfully!", "Success", JOptionPane.INFORMATION_MESSAGE);
+                } else {
+                    JOptionPane.showMessageDialog(frame, json.optString("error", "Unknown error"), "Error", JOptionPane.ERROR_MESSAGE);
+                }
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(frame, "Error: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            }
+        });
+
+        JButton refreshBtn = UITheme.createSecondaryButton("Refresh Lists");
+        refreshBtn.addActionListener(e -> {
+            populateCourses(courseDropdown);
+            populateStudents(studentDropdown);
+        });
+
+        formPanel.add(titleLabel);
+        formPanel.add(Box.createVerticalStrut(20));
+        formPanel.add(courseLabel);
+        formPanel.add(Box.createVerticalStrut(5));
+        formPanel.add(courseDropdown);
+        formPanel.add(Box.createVerticalStrut(15));
+        formPanel.add(studentLabel);
+        formPanel.add(Box.createVerticalStrut(5));
+        formPanel.add(studentDropdown);
+        formPanel.add(Box.createVerticalStrut(20));
+        formPanel.add(enrollBtn);
+        formPanel.add(Box.createVerticalStrut(10));
+        formPanel.add(refreshBtn);
+
+        panel.add(topPanel, BorderLayout.NORTH);
+        panel.add(formPanel, BorderLayout.CENTER);
+
+        return panel;
+    }
+
+    private JPanel createViewDataPanel() {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBackground(UITheme.BG_PRIMARY);
+        panel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+
+        JButton backBtn = UITheme.createSecondaryButton("Back");
+        backBtn.addActionListener(e -> cardLayout.show(mainPanel, MENU));
+
+        JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        topPanel.setOpaque(false);
+        topPanel.add(backBtn);
+
+        // Main content area - courses list
+        JPanel contentPanel = new JPanel(new BorderLayout());
+        contentPanel.setBackground(UITheme.BG_PRIMARY);
+
+        JLabel coursesTitle = new JLabel("All Courses - Click to view students and results");
+        coursesTitle.setFont(UITheme.FONT_TITLE_SMALL);
+
+        JPanel coursesPanel = new JPanel();
+        coursesPanel.setLayout(new BoxLayout(coursesPanel, BoxLayout.Y_AXIS));
+        coursesPanel.setBackground(UITheme.BG_PRIMARY);
+
+        JScrollPane scrollPane = new JScrollPane(coursesPanel);
+        scrollPane.setBackground(UITheme.BG_PRIMARY);
+        scrollPane.getViewport().setBackground(UITheme.BG_PRIMARY);
+        scrollPane.setBorder(BorderFactory.createLineBorder(UITheme.BORDER_COLOR, 1));
+
+        // Load courses on panel creation
+        loadCoursesForViewData(coursesPanel, frame);
+
+        contentPanel.add(coursesTitle, BorderLayout.NORTH);
+        contentPanel.add(scrollPane, BorderLayout.CENTER);
+
+        panel.add(topPanel, BorderLayout.NORTH);
+        panel.add(contentPanel, BorderLayout.CENTER);
+
+        return panel;
+    }
+
+    private void loadCoursesForViewData(JPanel coursesPanel, JFrame parentFrame) {
+        new SwingWorker<Void, Void>() {
+            @Override
+            protected Void doInBackground() throws Exception {
+                try {
+                    String response = ApiClient.adminGetAllCourses();
+                    JSONArray courses = new JSONArray(response);
+
+                    SwingUtilities.invokeLater(() -> {
+                        coursesPanel.removeAll();
+                        for (int i = 0; i < courses.length(); i++) {
+                            try {
+                                JSONObject course = courses.getJSONObject(i);
+                                int courseId = course.getInt("course_id");
+                                String courseName = course.getString("course_name");
+                                String description = course.optString("description", "No description");
+
+                                JPanel courseCard = UITheme.createCardPanel();
+                                courseCard.setLayout(new BorderLayout());
+                                courseCard.setMaximumSize(new Dimension(Integer.MAX_VALUE, 100));
+                                courseCard.setBorder(BorderFactory.createCompoundBorder(
+                                    BorderFactory.createLineBorder(UITheme.BORDER_COLOR, 1),
+                                    BorderFactory.createEmptyBorder(15, 15, 15, 15)
+                                ));
+
+                                JPanel textPanel = new JPanel();
+                                textPanel.setLayout(new BoxLayout(textPanel, BoxLayout.Y_AXIS));
+                                textPanel.setOpaque(false);
+                                JLabel courseNameLabel = new JLabel(courseName);
+                                courseNameLabel.setFont(UITheme.FONT_TITLE_SMALL);
+                                JLabel descriptionLabel = new JLabel(description);
+                                descriptionLabel.setFont(UITheme.FONT_BODY);
+                                textPanel.add(courseNameLabel);
+                                textPanel.add(Box.createVerticalStrut(5));
+                                textPanel.add(descriptionLabel);
+
+                                JButton viewBtn = UITheme.createPrimaryButton("View Students & Results");
+                                int finalCourseId = courseId;
+                                viewBtn.addActionListener(e -> showCourseDetails(finalCourseId, courseName));
+
+                                courseCard.add(textPanel, BorderLayout.CENTER);
+                                courseCard.add(viewBtn, BorderLayout.EAST);
+
+                                coursesPanel.add(courseCard);
+                                coursesPanel.add(Box.createVerticalStrut(10));
+                            } catch (Exception ex) {
+                                // Skip this course on error
+                            }
+                        }
+                        coursesPanel.revalidate();
+                        coursesPanel.repaint();
+                    });
+                } catch (Exception e) {
+                    SwingUtilities.invokeLater(() -> 
+                        JOptionPane.showMessageDialog(parentFrame, "Error loading courses: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE)
+                    );
+                }
+                return null;
+            }
+        }.execute();
+    }
+
+    private void showCourseDetails(int courseId, String courseName) {
+        JDialog dialog = new JDialog(frame, courseName + " - Students & Results", true);
+        dialog.setSize(1000, 600);
+        dialog.setLocationRelativeTo(frame);
+
+        JPanel mainPanel = new JPanel(new BorderLayout());
+        mainPanel.setBackground(UITheme.BG_PRIMARY);
+        mainPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+
+        JLabel titleLabel = new JLabel(courseName);
+        titleLabel.setFont(UITheme.FONT_TITLE_SMALL);
+
+        String[] columns = {"Student Name", "Grade", "Score", "Attempts"};
+        JTable table = new JTable(new javax.swing.table.DefaultTableModel(columns, 0) {
+            public boolean isCellEditable(int row, int column) { return false; }
+        });
+        table.setFillsViewportHeight(true);
+        table.setRowHeight(25);
+
+        JScrollPane scrollPane = new JScrollPane(table);
+        scrollPane.setBorder(BorderFactory.createLineBorder(UITheme.BORDER_COLOR, 1));
+
+        JButton closeBtn = UITheme.createSecondaryButton("Close");
+        closeBtn.addActionListener(e -> dialog.dispose());
+
+        mainPanel.add(titleLabel, BorderLayout.NORTH);
+        mainPanel.add(scrollPane, BorderLayout.CENTER);
+        mainPanel.add(closeBtn, BorderLayout.SOUTH);
+
+        // Load course details
+        loadCourseResults(courseId, table, dialog);
+
+        dialog.add(mainPanel);
         dialog.setVisible(true);
     }
 
-    private void addFieldRow(JPanel panel, String labelText, JTextField field) {
-        JPanel row = new JPanel(new BorderLayout());
-        row.setOpaque(false);
-        row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 50));
+    private void loadCourseResults(int courseId, JTable table, JDialog dialog) {
+        new SwingWorker<Void, Void>() {
+            @Override
+            protected Void doInBackground() throws Exception {
+                try {
+                    // Get enrollments for this course
+                    String enrollResponse = ApiClient.adminGetAllEnrollments();
+                    JSONArray enrollments = new JSONArray(enrollResponse);
+                    
+                    // Get results
+                    String resultResponse = ApiClient.adminGetAllResults();
+                    JSONArray results = new JSONArray(resultResponse);
 
-        JLabel label = new JLabel(labelText);
-        label.setFont(UITheme.FONT_LABEL);
-        label.setForeground(UITheme.TEXT_PRIMARY);
-        label.setPreferredSize(new Dimension(180, 40));
+                    SwingUtilities.invokeLater(() -> {
+                        javax.swing.table.DefaultTableModel model = (javax.swing.table.DefaultTableModel) table.getModel();
+                        model.setRowCount(0);
 
-        row.add(label, BorderLayout.WEST);
-        row.add(field, BorderLayout.CENTER);
+                        for (int i = 0; i < enrollments.length(); i++) {
+                            try {
+                                JSONObject enroll = enrollments.getJSONObject(i);
+                                if (enroll.getInt("course_id") == courseId) {
+                                    String studentName = enroll.getString("student_name");
+                                    
+                                    // Find results for this student in this course
+                                    int totalScore = 0;
+                                    int attempts = 0;
+                                    for (int j = 0; j < results.length(); j++) {
+                                        JSONObject result = results.getJSONObject(j);
+                                        if (result.getString("student_name").equals(studentName)) {
+                                            totalScore += result.getInt("score");
+                                            attempts++;
+                                        }
+                                    }
+                                    
+                                    String grade = calculateGrade(totalScore);
+                                    model.addRow(new Object[]{studentName, grade, totalScore, attempts});
+                                }
+                            } catch (Exception ex) {
+                                // Skip row on error
+                            }
+                        }
+                    });
+                } catch (Exception e) {
+                    SwingUtilities.invokeLater(() -> 
+                        JOptionPane.showMessageDialog(dialog, "Error loading course data: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE)
+                    );
+                }
+                return null;
+            }
+        }.execute();
+    }
 
-        panel.add(row);
-        panel.add(Box.createVerticalStrut(10));
+    private String calculateGrade(int score) {
+        if (score >= 90) return "A";
+        if (score >= 80) return "B";
+        if (score >= 70) return "C";
+        if (score >= 60) return "D";
+        return "F";
+    }
+
+    private void populateCourses(JComboBox<String> dropdown) {
+        dropdown.removeAllItems();
+        dropdown.addItem("Select Course...");
+        new SwingWorker<Void, Void>() {
+            @Override
+            protected Void doInBackground() throws Exception {
+                try {
+                    String response = ApiClient.adminGetAllCourses();
+                    JSONArray courses = new JSONArray(response);
+                    for (int i = 0; i < courses.length(); i++) {
+                        JSONObject course = courses.getJSONObject(i);
+                        String item = course.getInt("course_id") + " - " + course.getString("course_name");
+                        SwingUtilities.invokeLater(() -> dropdown.addItem(item));
+                    }
+                } catch (Exception e) {
+                    SwingUtilities.invokeLater(() -> 
+                        JOptionPane.showMessageDialog(frame, "Error loading courses: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE)
+                    );
+                }
+                return null;
+            }
+        }.execute();
+    }
+
+    private void populateTeachers(JComboBox<String> dropdown) {
+        dropdown.removeAllItems();
+        dropdown.addItem("Select Teacher...");
+        new SwingWorker<Void, Void>() {
+            @Override
+            protected Void doInBackground() throws Exception {
+                try {
+                    String response = ApiClient.adminGetAllUsers();
+                    JSONArray users = new JSONArray(response);
+                    for (int i = 0; i < users.length(); i++) {
+                        JSONObject user = users.getJSONObject(i);
+                        if ("teacher".equals(user.getString("role"))) {
+                            String item = user.getInt("user_id") + " - " + user.getString("username");
+                            SwingUtilities.invokeLater(() -> dropdown.addItem(item));
+                        }
+                    }
+                } catch (Exception e) {
+                    SwingUtilities.invokeLater(() -> 
+                        JOptionPane.showMessageDialog(frame, "Error loading teachers: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE)
+                    );
+                }
+                return null;
+            }
+        }.execute();
+    }
+
+    private void populateStudents(JComboBox<String> dropdown) {
+        dropdown.removeAllItems();
+        dropdown.addItem("Select Student...");
+        new SwingWorker<Void, Void>() {
+            @Override
+            protected Void doInBackground() throws Exception {
+                try {
+                    String response = ApiClient.adminGetAllUsers();
+                    JSONArray users = new JSONArray(response);
+                    for (int i = 0; i < users.length(); i++) {
+                        JSONObject user = users.getJSONObject(i);
+                        if ("student".equals(user.getString("role"))) {
+                            String item = user.getInt("user_id") + " - " + user.getString("username");
+                            SwingUtilities.invokeLater(() -> dropdown.addItem(item));
+                        }
+                    }
+                } catch (Exception e) {
+                    SwingUtilities.invokeLater(() -> 
+                        JOptionPane.showMessageDialog(frame, "Error loading students: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE)
+                    );
+                }
+                return null;
+            }
+        }.execute();
     }
 }

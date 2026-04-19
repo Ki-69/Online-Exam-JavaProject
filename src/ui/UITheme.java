@@ -62,6 +62,10 @@ public class UITheme {
     public static JButton createDangerButton(String text) {
         return createButton(text, ACCENT_RED, Color.WHITE);
     }
+
+    public static JButton createSecondaryButton(String text) {
+        return createButton(text, PRIMARY_DARK, Color.WHITE);
+    }
     
     public static JButton createButton(String text, Color bgColor, Color fgColor) {
         RoundedButton button = new RoundedButton(text, CORNER_RADIUS);

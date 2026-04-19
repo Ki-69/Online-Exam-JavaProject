@@ -2,6 +2,7 @@ package handler;
 
 import com.sun.net.httpserver.*;
 import service.AdminService;
+import model.*;
 
 import java.io.*;
 import java.util.*;
@@ -18,6 +19,70 @@ public class AdminHandler implements HttpHandler {
         String method = exchange.getRequestMethod();
 
         try {
+
+            // ===== VIEW ALL USERS =====
+            if (path.equals("/admin/allUsers") && method.equalsIgnoreCase("GET")) {
+
+                List<User> users = service.getAllUsers();
+                List<Map<String, Object>> data = new ArrayList<>();
+                for (User user : users) {
+                    Map<String, Object> map = new HashMap<>();
+                    map.put("user_id", user.getUserId());
+                    map.put("username", user.getUsername());
+                    map.put("role", user.getRole());
+                    data.add(map);
+                }
+
+                String response = mapListToJson(data);
+
+                byte[] bytes = response.getBytes();
+                exchange.getResponseHeaders().set("Content-Type", "application/json");
+                exchange.sendResponseHeaders(200, bytes.length);
+
+                OutputStream os = exchange.getResponseBody();
+                os.write(bytes);
+                os.close();
+            }
+
+            // ===== VIEW ALL COURSES =====
+            else if (path.equals("/admin/allCourses") && method.equalsIgnoreCase("GET")) {
+
+                List<Course> courses = service.getAllCourses();
+                List<Map<String, Object>> data = new ArrayList<>();
+                for (Course course : courses) {
+                    Map<String, Object> map = new HashMap<>();
+                    map.put("course_id", course.getCourseId());
+                    map.put("course_name", course.getCourseName());
+                    map.put("description", course.getDescription());
+                    data.add(map);
+                }
+
+                String response = mapListToJson(data);
+
+                byte[] bytes = response.getBytes();
+                exchange.getResponseHeaders().set("Content-Type", "application/json");
+                exchange.sendResponseHeaders(200, bytes.length);
+
+                OutputStream os = exchange.getResponseBody();
+                os.write(bytes);
+                os.close();
+            }
+
+            // ===== VIEW ALL ENROLLMENTS =====
+            else if (path.equals("/admin/allEnrollments") && method.equalsIgnoreCase("GET")) {
+
+                List<Map<String, Object>> enrollments = service.getAllEnrollments();
+
+                String response = mapListToJson(enrollments);
+
+                byte[] bytes = response.getBytes();
+                exchange.getResponseHeaders().set("Content-Type", "application/json");
+                exchange.sendResponseHeaders(200, bytes.length);
+
+                OutputStream os = exchange.getResponseBody();
+                os.write(bytes);
+                os.close();
+            }
 
             // ===== VIEW ALL RESULTS =====
             if (path.equals("/admin/allResults") && method.equalsIgnoreCase("GET")) {

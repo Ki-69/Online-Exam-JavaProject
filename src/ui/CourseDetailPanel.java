@@ -89,9 +89,12 @@ public class CourseDetailPanel extends JPanel {
                 try {
                     String resultResponse = ApiClient.getResults(exam.getExamId(), studentId);
                     if (resultResponse != null && !resultResponse.trim().isEmpty()) {
-                        String[] parts = resultResponse.split("\\|");
-                        if (parts.length >= 2) {
-                            examScores.put(exam.getExamId(), parts[1]);
+                        // Parse the response: "score1|score2|score3" format
+                        String[] scores = resultResponse.split("\\|");
+                        if (scores.length > 0 && !scores[0].trim().isEmpty()) {
+                            // Use the latest (last) score for display
+                            String latestScore = scores[scores.length - 1];
+                            examScores.put(exam.getExamId(), latestScore);
                             completedExams.add(exam);
                         }
                     } else {

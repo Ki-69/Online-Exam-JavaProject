@@ -7,6 +7,7 @@ public class Result {
     private int resultId;
     private int studentId;
     private int examId;
+    private int attemptNumber;
     private int score;
 
     public Result() {
@@ -22,6 +23,14 @@ public class Result {
         this.resultId = resultId;
         this.studentId = studentId;
         this.examId = examId;
+        this.score = score;
+    }
+
+    public Result(int resultId, int studentId, int examId, int attemptNumber, int score) {
+        this.resultId = resultId;
+        this.studentId = studentId;
+        this.examId = examId;
+        this.attemptNumber = attemptNumber;
         this.score = score;
     }
 
@@ -50,6 +59,14 @@ public class Result {
         this.examId = examId;
     }
 
+    public int getAttemptNumber() {
+        return attemptNumber;
+    }
+
+    public void setAttemptNumber(int attemptNumber) {
+        this.attemptNumber = attemptNumber;
+    }
+
     public int getScore() {
         return score;
     }
@@ -64,6 +81,7 @@ public class Result {
                 "resultId=" + resultId +
                 ", studentId=" + studentId +
                 ", examId=" + examId +
+                ", attemptNumber=" + attemptNumber +
                 ", score=" + score +
                 '}';
     }

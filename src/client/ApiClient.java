@@ -175,6 +175,36 @@ public class ApiClient {
         return new String(is.readAllBytes());
     }
 
+    public static String adminGetAllUsers() throws Exception {
+        URL url = new URL(BASE_URL + "/admin/allUsers");
+
+        HttpURLConnection con = (HttpURLConnection) url.openConnection();
+        con.setRequestMethod("GET");
+
+        InputStream is = con.getInputStream();
+        return new String(is.readAllBytes());
+    }
+
+    public static String adminGetAllCourses() throws Exception {
+        URL url = new URL(BASE_URL + "/admin/allCourses");
+
+        HttpURLConnection con = (HttpURLConnection) url.openConnection();
+        con.setRequestMethod("GET");
+
+        InputStream is = con.getInputStream();
+        return new String(is.readAllBytes());
+    }
+
+    public static String adminGetAllEnrollments() throws Exception {
+        URL url = new URL(BASE_URL + "/admin/allEnrollments");
+
+        HttpURLConnection con = (HttpURLConnection) url.openConnection();
+        con.setRequestMethod("GET");
+
+        InputStream is = con.getInputStream();
+        return new String(is.readAllBytes());
+    }
+
     public static String adminGetAllResults() throws Exception {
         URL url = new URL(BASE_URL + "/admin/allResults");
 
