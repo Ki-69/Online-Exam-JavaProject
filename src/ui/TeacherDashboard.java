@@ -13,16 +13,6 @@ public class TeacherDashboard {
     private CardLayout cardLayout;
     private JPanel mainPanel;
 
-    // ---- DESIGN SYSTEM ----
-    private static final Color BG = new Color(18,18,18);
-    private static final Color CARD = new Color(28,28,30);
-    private static final Color ACCENT = new Color(0,122,255);
-    private static final Color TEXT = new Color(230,230,235);
-    private static final Color SUBTEXT = new Color(150,150,155);
-
-    private static final Font TITLE = new Font("Segoe UI", Font.BOLD, 22);
-    private static final Font BODY = new Font("Segoe UI", Font.PLAIN, 14);
-
     public TeacherDashboard(int teacherId) {
         this.teacherId = teacherId;
         initializeUI();
@@ -30,12 +20,15 @@ public class TeacherDashboard {
 
     private void initializeUI() {
         frame = new JFrame("Teacher Dashboard");
-        frame.setSize(1200,800);
+        frame.setSize(1200, 800);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setLocationRelativeTo(null);
+
+        frame.getContentPane().setBackground(UITheme.BG_PRIMARY);
 
         cardLayout = new CardLayout();
         mainPanel = new JPanel(cardLayout);
-        mainPanel.setBackground(BG);
+        mainPanel.setBackground(UITheme.BG_PRIMARY);
 
         mainPanel.add(menuPanel(), "menu");
         mainPanel.add(coursesPanel(), "courses");
@@ -44,72 +37,59 @@ public class TeacherDashboard {
         mainPanel.add(resultsPanel(), "results");
 
         frame.add(mainPanel);
-        frame.getContentPane().setBackground(BG);
         frame.setVisible(true);
     }
 
-    // ---- UI HELPERS ----
+    // =========================
+    // HELPERS
+    // =========================
+
     private JPanel card() {
-        JPanel p = new JPanel();
-        p.setBackground(CARD);
+        JPanel p = UITheme.createCardPanel();
         p.setLayout(new BoxLayout(p, BoxLayout.Y_AXIS));
-        p.setBorder(BorderFactory.createEmptyBorder(20,20,20,20));
         return p;
     }
 
     private JButton btn(String t) {
-        JButton b = new JButton(t);
-        b.setBackground(ACCENT);
-        b.setForeground(Color.WHITE);
-        b.setFocusPainted(false);
-        b.setBorderPainted(false);
-        b.setFont(BODY);
-        b.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        b.setMaximumSize(new Dimension(250,45));
+        JButton b = UITheme.createPrimaryButton(t);
+        b.setMaximumSize(new Dimension(250, 40));
         return b;
     }
 
     private JTextField field() {
-        JTextField f = new JTextField();
-        f.setBackground(new Color(40,40,42));
-        f.setForeground(TEXT);
-        f.setCaretColor(TEXT);
-        f.setBorder(BorderFactory.createEmptyBorder(10,10,10,10));
-        return f;
+        return UITheme.createTextField();
     }
 
-    private JLabel title(String t){
+    private JLabel title(String t) {
         JLabel l = new JLabel(t);
-        l.setFont(TITLE);
-        l.setForeground(TEXT);
+        l.setFont(UITheme.FONT_TITLE_MEDIUM);
         return l;
     }
 
-    private JLabel label(String t){
+    private JLabel label(String t) {
         JLabel l = new JLabel(t);
-        l.setFont(BODY);
-        l.setForeground(SUBTEXT);
+        l.setFont(UITheme.FONT_LABEL);
+        l.setForeground(UITheme.TEXT_SECONDARY);
         return l;
     }
 
-    private JButton back(){
-        JButton b = new JButton("←");
-        b.setBorderPainted(false);
-        b.setContentAreaFilled(false);
-        b.setForeground(TEXT);
-        b.setFont(TITLE);
+    private JButton back() {
+        JButton b = UITheme.createSecondaryButton("Back");
         b.addActionListener(e -> show("menu"));
         return b;
     }
 
-    private void show(String name){
+    private void show(String name) {
         cardLayout.show(mainPanel, name);
     }
 
-    // ---- MENU ----
-    private JPanel menuPanel(){
+    // =========================
+    // MENU
+    // =========================
+
+    private JPanel menuPanel() {
         JPanel p = new JPanel(new GridBagLayout());
-        p.setBackground(BG);
+        p.setBackground(UITheme.BG_PRIMARY);
 
         JPanel c = card();
 
@@ -117,16 +97,16 @@ public class TeacherDashboard {
         c.add(Box.createVerticalStrut(20));
 
         JButton b1 = btn("My Courses");
-        b1.addActionListener(e->show("courses"));
+        b1.addActionListener(e -> show("courses"));
 
         JButton b2 = btn("Create Exam");
-        b2.addActionListener(e->show("exam"));
+        b2.addActionListener(e -> show("exam"));
 
         JButton b3 = btn("Manage Questions");
-        b3.addActionListener(e->show("questions"));
+        b3.addActionListener(e -> show("questions"));
 
         JButton b4 = btn("View Results");
-        b4.addActionListener(e->show("results"));
+        b4.addActionListener(e -> show("results"));
 
         c.add(b1); c.add(Box.createVerticalStrut(10));
         c.add(b2); c.add(Box.createVerticalStrut(10));
@@ -137,28 +117,42 @@ public class TeacherDashboard {
         return p;
     }
 
-    // ---- COURSES ----
-    private JPanel coursesPanel(){
+    // =========================
+    // COURSES
+    // =========================
+
+    private JPanel coursesPanel() {
         JPanel panel = new JPanel(new BorderLayout());
-        panel.setBackground(BG);
-        panel.add(back(), BorderLayout.NORTH);
+        panel.setBackground(UITheme.BG_PRIMARY);
+
+        JPanel top = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        top.setOpaque(false);
+        top.add(back());
 
         JPanel list = card();
 
-        panel.add(new JScrollPane(list), BorderLayout.CENTER);
+        JScrollPane scroll = new JScrollPane(list);
+        scroll.setBorder(null);
+        scroll.getViewport().setBackground(UITheme.BG_PRIMARY);
 
-        new SwingWorker<Void,Void>(){
-            protected Void doInBackground(){
-                try{
+        panel.add(top, BorderLayout.NORTH);
+        panel.add(scroll, BorderLayout.CENTER);
+
+        new SwingWorker<Void, Void>() {
+            protected Void doInBackground() {
+                try {
                     JSONArray arr = new JSONArray(ApiClient.teacherGetCourses(teacherId));
-                    SwingUtilities.invokeLater(()->{
+                    SwingUtilities.invokeLater(() -> {
                         list.removeAll();
-                        for(int i=0;i<arr.length();i++){
-                            list.add(new JLabel("• "+arr.getJSONObject(i).getString("courseName")));
+                        for (int i = 0; i < arr.length(); i++) {
+                            JLabel l = new JLabel(arr.getJSONObject(i).getString("courseName"));
+                            l.setFont(UITheme.FONT_BODY);
+                            list.add(l);
+                            list.add(Box.createVerticalStrut(8));
                         }
                         list.revalidate();
                     });
-                }catch(Exception e){e.printStackTrace();}
+                } catch (Exception ignored) {}
                 return null;
             }
         }.execute();
@@ -166,11 +160,17 @@ public class TeacherDashboard {
         return panel;
     }
 
-    // ---- CREATE EXAM ----
-    private JPanel createExamPanel(){
+    // =========================
+    // CREATE EXAM
+    // =========================
+
+    private JPanel createExamPanel() {
         JPanel panel = new JPanel(new BorderLayout());
-        panel.setBackground(BG);
-        panel.add(back(), BorderLayout.NORTH);
+        panel.setBackground(UITheme.BG_PRIMARY);
+
+        JPanel top = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        top.setOpaque(false);
+        top.add(back());
 
         JPanel form = card();
 
@@ -191,9 +191,9 @@ public class TeacherDashboard {
 
         JButton create = btn("Create");
 
-        create.addActionListener(e->{
-            try{
-                int courseId = Integer.parseInt(((String)courseBox.getSelectedItem()).split("-")[0]);
+        create.addActionListener(e -> {
+            try {
+                int courseId = Integer.parseInt(((String) courseBox.getSelectedItem()).split("-")[0]);
 
                 ApiClient.teacherCreateExam(
                         courseId,
@@ -203,43 +203,52 @@ public class TeacherDashboard {
                         teacherId
                 );
 
-                JOptionPane.showMessageDialog(frame,"Created");
+                JOptionPane.showMessageDialog(frame, "Created");
 
-            }catch(Exception ex){ex.printStackTrace();}
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
         });
 
         form.add(Box.createVerticalStrut(20));
         form.add(create);
 
-        new SwingWorker<Void,Void>(){
-            protected Void doInBackground(){
-                try{
+        new SwingWorker<Void, Void>() {
+            protected Void doInBackground() {
+                try {
                     JSONArray arr = new JSONArray(ApiClient.teacherGetCourses(teacherId));
-                    for(int i=0;i<arr.length();i++){
+                    for (int i = 0; i < arr.length(); i++) {
                         JSONObject c = arr.getJSONObject(i);
-                        SwingUtilities.invokeLater(()->courseBox.addItem(
-                                c.getInt("courseId")+"-"+c.getString("courseName")
+                        SwingUtilities.invokeLater(() -> courseBox.addItem(
+                                c.getInt("courseId") + "-" + c.getString("courseName")
                         ));
                     }
-                }catch(Exception e){e.printStackTrace();}
+                } catch (Exception ignored) {}
                 return null;
             }
         }.execute();
 
-        panel.add(form,BorderLayout.CENTER);
+        panel.add(top, BorderLayout.NORTH);
+        panel.add(form, BorderLayout.CENTER);
         return panel;
     }
 
-    // ---- QUESTIONS ----
-    private JPanel questionPanel(){
+    // =========================
+    // QUESTIONS
+    // =========================
+
+    private JPanel questionPanel() {
         JPanel panel = new JPanel(new BorderLayout());
-        panel.setBackground(BG);
-        panel.add(back(), BorderLayout.NORTH);
+        panel.setBackground(UITheme.BG_PRIMARY);
+
+        JPanel top = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        top.setOpaque(false);
+        top.add(back());
 
         JPanel form = card();
 
         JComboBox<String> examBox = new JComboBox<>();
-        JTextField q = field(), a=field(), b=field(), c=field(), d=field();
+        JTextField q = field(), a = field(), b = field(), c = field(), d = field();
         JTextField correct = field(), marks = field();
 
         form.add(title("Add Question"));
@@ -255,9 +264,9 @@ public class TeacherDashboard {
 
         JButton add = btn("Add");
 
-        add.addActionListener(e->{
-            try{
-                int examId = Integer.parseInt(((String)examBox.getSelectedItem()).split("-")[0]);
+        add.addActionListener(e -> {
+            try {
+                int examId = Integer.parseInt(((String) examBox.getSelectedItem()).split("-")[0]);
 
                 ApiClient.teacherAddQuestion(
                         examId,
@@ -271,61 +280,70 @@ public class TeacherDashboard {
                         1
                 );
 
-                JOptionPane.showMessageDialog(frame,"Added");
+                JOptionPane.showMessageDialog(frame, "Added");
 
-            }catch(Exception ex){ex.printStackTrace();}
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
         });
 
         form.add(add);
 
-        new SwingWorker<Void,Void>(){
-            protected Void doInBackground(){
-                try{
+        new SwingWorker<Void, Void>() {
+            protected Void doInBackground() {
+                try {
                     JSONArray courses = new JSONArray(ApiClient.teacherGetCourses(teacherId));
-                    for(int i=0;i<courses.length();i++){
+                    for (int i = 0; i < courses.length(); i++) {
                         int cid = courses.getJSONObject(i).getInt("courseId");
                         JSONArray exams = new JSONArray(ApiClient.teacherGetExams(cid));
 
-                        for(int j=0;j<exams.length();j++){
+                        for (int j = 0; j < exams.length(); j++) {
                             JSONObject e = exams.getJSONObject(j);
-                            SwingUtilities.invokeLater(()->examBox.addItem(
-                                    e.getInt("examId")+"-"+e.getString("title")
+                            SwingUtilities.invokeLater(() -> examBox.addItem(
+                                    e.getInt("examId") + "-" + e.getString("title")
                             ));
                         }
                     }
-                }catch(Exception e){e.printStackTrace();}
+                } catch (Exception ignored) {}
                 return null;
             }
         }.execute();
 
-        panel.add(form,BorderLayout.CENTER);
+        panel.add(top, BorderLayout.NORTH);
+        panel.add(form, BorderLayout.CENTER);
         return panel;
     }
 
-    // ---- RESULTS ----
-    private JPanel resultsPanel(){
+    // =========================
+    // RESULTS
+    // =========================
+
+    private JPanel resultsPanel() {
         JPanel panel = new JPanel(new BorderLayout());
-        panel.setBackground(BG);
-        panel.add(back(), BorderLayout.NORTH);
+        panel.setBackground(UITheme.BG_PRIMARY);
+
+        JPanel top = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        top.setOpaque(false);
+        top.add(back());
 
         JTable table = new JTable(new javax.swing.table.DefaultTableModel(
-                new String[]{"Student","Exam","Score"},0));
+                new String[]{"Student", "Exam", "Score"}, 0));
 
-        table.setBackground(CARD);
-        table.setForeground(TEXT);
-        table.setRowHeight(28);
+        JScrollPane scroll = new JScrollPane(table);
+        scroll.setBorder(null);
 
-        panel.add(new JScrollPane(table), BorderLayout.CENTER);
+        panel.add(top, BorderLayout.NORTH);
+        panel.add(scroll, BorderLayout.CENTER);
 
-        new SwingWorker<Void,Void>(){
-            protected Void doInBackground(){
-                try{
+        new SwingWorker<Void, Void>() {
+            protected Void doInBackground() {
+                try {
                     JSONArray arr = new JSONArray(ApiClient.teacherGetResultsByTeacher(teacherId));
 
-                    SwingUtilities.invokeLater(()->{
-                        var m=(javax.swing.table.DefaultTableModel)table.getModel();
-                        for(int i=0;i<arr.length();i++){
-                            JSONObject r=arr.getJSONObject(i);
+                    SwingUtilities.invokeLater(() -> {
+                        var m = (javax.swing.table.DefaultTableModel) table.getModel();
+                        for (int i = 0; i < arr.length(); i++) {
+                            JSONObject r = arr.getJSONObject(i);
                             m.addRow(new Object[]{
                                     r.getString("student_name"),
                                     r.getString("exam_title"),
@@ -334,7 +352,7 @@ public class TeacherDashboard {
                         }
                     });
 
-                }catch(Exception e){e.printStackTrace();}
+                } catch (Exception ignored) {}
                 return null;
             }
         }.execute();
