@@ -13,78 +13,158 @@
 
 **Architecture**: 3-Layer (UI/Handler → Service → DAO → Database)
 
+## System Architecture Overview
+
+The Online Exam System is built using a 3-tier architecture:
+
+1. **Presentation Layer (UI)**: Swing-based graphical user interface for students, teachers, and admins. Handles user interactions, displays data, and communicates with the backend via HTTP API calls.
+
+2. **Application Layer (Handlers & Services)**: 
+   - **Handlers**: HTTP request handlers that process API endpoints, parse requests, and return JSON responses.
+   - **Services**: Business logic layer that validates inputs, enforces authorization, and orchestrates data operations.
+
+3. **Data Layer (DAO & Database)**: 
+   - **DAO**: Data Access Objects that encapsulate database operations using JDBC.
+   - **Database**: MySQL database storing users, courses, exams, questions, and results.
+
+**Application Flow**:
+- User logs in via LoginUI, which authenticates against the /login endpoint.
+- Based on role, appropriate dashboard is shown (StudentDashboard, TeacherDashboard, AdminDashboard).
+- Students can view enrolled courses, take exams, and view results.
+- Teachers can manage their courses, create exams, add questions, and view results.
+- Admins can manage courses, assign teachers, enroll students, and view all results.
+- All UI interactions use ApiClient to make HTTP requests to the backend server running on MainServer.
+
 ---
 
 ## Complete File Structure
 
 ```
 Online-Exam-JavaProject/
-├── src/
-│   ├── MainServer.java                    [Server bootstrap, handler registration]
-│   ├── TestDB.java                        [Test client, sample usage]
-│   │
-│   ├── model/
-│   │   ├── User.java                      [userId, username, password, role]
-│   │   ├── Course.java                    [courseId, courseName, description]
-│   │   ├── Exam.java                      [examId, courseId, title, duration, maxAttempts, createdBy]
-│   │   ├── Question.java                  [questionId, examId, questionText, options, marks, order]
-│   │   └── Result.java                    [Legacy result model]
-│   │
-│   ├── client/
-│   │   └── ApiClient.java                 [HTTP client: student, admin, teacher methods]
-│   │
-│   ├── db/
-│   │   └── DBConnection.java              [Singleton MySQL connection pool]
-│   │
-│   ├── dao/
-│   │   ├── AdminDAO.java                  [15 methods: course/teacher/student management]
-│   │   ├── TeacherDAO.java                [13 methods: exam/question/result operations]
-│   │   ├── UserDAO.java                   [User authentication & retrieval]
-│   │   ├── CourseDAO.java                 [Course CRUD operations]
-│   │   ├── CourseTeacherDAO.java          [Many-to-many course-teacher]
-│   │   ├── CourseEnrollmentDAO.java       [Many-to-many course-student]
-│   │   ├── ExamDAO.java                   [Exam CRUD operations]
-│   │   ├── QuestionDAO.java               [Question CRUD operations]
-│   │   └── ResultDAO.java                 [Result persistence]
-│   │
-│   ├── service/
-│   │   ├── AdminService.java              [Admin business logic + validation]
-│   │   ├── TeacherService.java            [Teacher business logic + authorization]
-│   │   ├── StudentService.java            [Student business logic]
-│   │   ├── AuthService.java               [Authentication logic]
-│   │   ├── CourseService.java             [Course service layer]
-│   │   ├── ExamService.java               [Exam service layer]
-│   │   └── ResultService.java             [Result service layer]
-│   │
-│   ├── handler/
-│   │   ├── AdminHandler.java              [6 admin endpoints, JSON responses]
-│   │   ├── TeacherHandler.java            [6 teacher endpoints, JSON responses]
-│   │   ├── AuthHandler.java               [Login endpoint]
-│   │   ├── ExamHandler.java               [Start exam endpoint]
-│   │   ├── CourseHandler.java             [Get courses endpoint]
-│   │   ├── ExamListHandler.java           [Get exams endpoint]
-│   │   ├── ResultHandler.java             [Submit answers endpoint]
-│   │   └── ResultListHandler.java         [Get results endpoint]
-│   │
-│   └── ui/
-│       ├── UITheme.java                   [Color scheme & styling constants]
-│       ├── LoginUI.java                   [Login form for all roles]
-│       ├── AdminDashboard.java            [Admin operations (basic)]
-│       ├── StudentDashboard.java          [Student courses, exams, results]
-│       ├── CourseDetailPanel.java         [Course exams list with actions]
-│       ├── ModernExamUI.java              [Exam interface, question display]
-│       └── [TeacherDashboard.java]        [TODO: Teacher operations UI]
+├── API_ENDPOINTS.md                      [API endpoint documentation]
+├── app.sh                                [Application startup script]
+├── ARCHITECTURE.md                       [This file: system architecture]
+├── DATABASE_REDESIGN.md                  [Database schema and redesign notes]
+├── run.sh                                [Run script for the application]
+│
+├── client/
+│   └── ApiClient.java                    [HTTP client for API interactions]
+│
+├── dao/
+│   ├── AdminDAO.java                     [Data access for admin operations]
+│   ├── CourseDAO.java                    [Course data access]
+│   ├── CourseEnrollmentDAO.java          [Course enrollment data access]
+│   ├── CourseTeacherDAO.java             [Course-teacher assignments]
+│   ├── ExamDAO.java                      [Exam data access]
+│   ├── QuestionDAO.java                  [Question data access]
+│   ├── ResultDAO.java                    [Result data access]
+│   ├── TeacherDAO.java                   [Teacher data access]
+│   └── UserDAO.java                      [User data access]
+│
+├── db/
+│   └── DBConnection.java                 [Database connection management]
+│
+├── handler/
+│   ├── AdminHandler.java                 [Admin API endpoints]
+│   ├── AuthHandler.java                  [Authentication endpoints]
+│   ├── CourseHandler.java                [Course-related endpoints]
+│   ├── ExamHandler.java                  [Exam start endpoints]
+│   ├── ExamListHandler.java              [Exam list endpoints]
+│   ├── ResultHandler.java                [Result submission endpoints]
+│   ├── ResultListHandler.java            [Result retrieval endpoints]
+│   └── TeacherHandler.java               [Teacher API endpoints]
 │
 ├── lib/
 │   └── mysql-connector-j-9.6.0.jar       [MySQL JDBC driver]
 │
-├── sql/
-│   └── exam_system_schema.sql            [Database schema + sample data]
+├── model/
+│   ├── Attempt.java                      [Exam attempt model]
+│   ├── Course.java                       [Course model]
+│   ├── CourseEnrollment.java             [Course enrollment model]
+│   ├── CourseTeacher.java                [Course-teacher model]
+│   ├── Exam.java                         [Exam model]
+│   ├── Question.java                     [Question model]
+│   ├── Result.java                       [Result model]
+│   └── User.java                         [User model]
 │
-├── out/                                  [Compiled .class files]
+├── service/
+│   ├── AdminService.java                 [Admin business logic]
+│   ├── AuthService.java                  [Authentication service]
+│   ├── CourseService.java                [Course service]
+│   ├── ExamService.java                  [Exam service]
+│   ├── ResultService.java                [Result service]
+│   ├── StudentService.java               [Student business logic]
+│   └── TeacherService.java               [Teacher business logic]
 │
-├── API_ENDPOINTS.md                      [This file: endpoint documentation]
-└── README.md
+├── src/
+│   ├── MainServer.java                   [Main server entry point]
+│   ├── TestDB.java                       [Database testing client]
+│   │
+│   ├── client/
+│   │   └── ApiClient.java                [Duplicate or alternative client]
+│   │
+│   ├── dao/
+│   │   ├── AdminDAO.java                 [Duplicate DAO classes]
+│   │   ├── CourseDAO.java
+│   │   ├── CourseEnrollmentDAO.java
+│   │   ├── CourseTeacherDAO.java
+│   │   ├── ExamDAO.java
+│   │   ├── QuestionDAO.java
+│   │   ├── ResultDAO.java
+│   │   ├── TeacherDAO.java
+│   │   └── UserDAO.java
+│   │
+│   ├── db/
+│   │   └── DBConnection.java             [Duplicate DB connection]
+│   │
+│   ├── handler/
+│   │   ├── AdminHandler.java             [Duplicate handlers]
+│   │   ├── AuthHandler.java
+│   │   ├── CourseHandler.java
+│   │   ├── ExamHandler.java
+│   │   ├── ExamListHandler.java
+│   │   ├── ResultHandler.java
+│   │   ├── ResultListHandler.java
+│   │   └── TeacherHandler.java
+│   │
+│   ├── model/
+│   │   ├── Attempt.java                  [Duplicate models]
+│   │   ├── Course.java
+│   │   ├── CourseEnrollment.java
+│   │   ├── CourseTeacher.java
+│   │   ├── Exam.java
+│   │   ├── Question.java
+│   │   ├── Result.java
+│   │   └── User.java
+│   │
+│   ├── service/
+│   │   ├── AdminService.java             [Duplicate services]
+│   │   ├── AuthService.java
+│   │   ├── CourseService.java
+│   │   ├── ExamService.java
+│   │   ├── ResultService.java
+│   │   ├── StudentService.java
+│   │   └── TeacherService.java
+│   │
+│   └── ui/
+│       ├── AdminDashboard.java           [Duplicate UI classes]
+│       ├── CourseDetailPanel.java
+│       ├── LoginUI.java
+│       ├── ModernExamUI.java
+│       ├── StudentDashboard.java
+│       ├── TeacherDashboard.java
+│       └── UITheme.java
+│
+├── ui/
+│   ├── AdminDashboard.java               [UI classes for the application]
+│   ├── CourseDetailPanel.java
+│   ├── LoginUI.java
+│   ├── ModernExamUI.java
+│   ├── StudentDashboard.java
+│   ├── TeacherDashboard.java
+│   └── UITheme.java
+│
+└── out/                                  [Compiled .class files (generated)]
 ```
 
 ---
