@@ -65,9 +65,9 @@ The Online Exam System is a comprehensive multi-role web application built in Ja
 ### 3-Tier Architecture
 
 ```
-┌─────────────────┐    HTTP/JSON    ┌─────────────────┐    JDBC    ┌─────────────────┐
-│   Presentation  │◄────────────────►│   Application  │◄──────────►│      Data       │
-│     Layer       │                  │     Layer      │            │     Layer       │
+┌─────────────────┐    HTTP/JSON     ┌─────────────────┐    JDBC    ┌─────────────────┐
+│   Presentation  │◄────────────────►│   Application   │◄──────────►│      Data       │
+│     Layer       │                  │     Layer       │            │     Layer       │
 │                 │                  │                 │            │                 │
 │ • LoginUI       │                  │ • Handlers      │            │ • MySQL         │
 │ • Dashboards    │                  │ • Services      │            │ • DAOs          │
