@@ -375,11 +375,13 @@ public class AdminDashboard {
                                     }
                                 }
 
-                                model.addRow(new Object[]{
-                                        name,
-                                        maxScore,
-                                        attempts
-                                });
+                                if (attempts > 0) {
+                                    model.addRow(new Object[]{
+                                            name,
+                                            maxScore,
+                                            attempts
+                                    });
+                                }
                             }
                         }
                     });
