@@ -316,7 +316,7 @@ public class AdminDAO {
             SELECT a.score, a.attempt_number,
                    u.username AS student_name,
                    e.title AS exam_title,
-                   c.course_name
+                   c.course_name, c.course_id
             FROM attempts a
             JOIN users u ON a.student_id = u.user_id
             JOIN exams e ON a.exam_id = e.exam_id

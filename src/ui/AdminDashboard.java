@@ -328,7 +328,7 @@ public class AdminDashboard {
         panel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
 
         JTable table = new JTable(new javax.swing.table.DefaultTableModel(
-            new String[]{"Student", "Score", "Attempts"}, 0));
+            new String[]{"Student", "Score"}, 0));
 
         JScrollPane scroll = new JScrollPane(table);
 
