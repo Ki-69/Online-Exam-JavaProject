@@ -1,8 +1,8 @@
 package ui;
 
 import client.ApiClient;
-import javax.swing.*;
 import java.awt.*;
+import javax.swing.*;
 
 public class LoginUI {
 
@@ -160,8 +160,7 @@ public class LoginUI {
                             } else if (role.equals("ADMIN")) {
                                 new AdminDashboard();
                             } else if (role.equals("TEACHER")) {
-                                // TODO: Create TeacherDashboard
-                                JOptionPane.showMessageDialog(null, "Teacher dashboard not yet implemented", "Coming Soon", JOptionPane.INFORMATION_MESSAGE);
+                                new TeacherDashboard(userId);
                             }
 
                         } catch (Exception ex) {
