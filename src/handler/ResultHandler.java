@@ -21,22 +21,23 @@ public class ResultHandler implements HttpHandler {
         InputStream is = exchange.getRequestBody();
         String body = new String(is.readAllBytes());
 
-        // format: studentId=1&answers=1:A,2:B
+        // format: studentId=1&examId=2&answers=1:A,2:B
         String[] parts = body.split("&");
 
         int studentId = Integer.parseInt(parts[0].split("=")[1]);
-
-        String answerStr = parts[1].split("=")[1];
+        int examId = Integer.parseInt(parts[1].split("=")[1]);
+        String answerStr = parts[2].split("=")[1];
 
         Map<Integer, String> answers = new HashMap<>();
 
         for (String pair : answerStr.split(",")) {
+            if (pair.isBlank()) continue;
             String[] kv = pair.split(":");
             answers.put(Integer.parseInt(kv[0]), kv[1]);
         }
 
         try {
-            int score = service.evaluateAndStore(studentId, answers);
+            int score = service.evaluateAndStore(studentId, examId, answers);
 
             String response = "Score=" + score;
 

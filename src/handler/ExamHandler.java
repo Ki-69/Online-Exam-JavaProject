@@ -5,7 +5,11 @@ import service.ExamService;
 import model.Question;
 
 import java.io.*;
+import java.net.URI;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.Arrays;
 
 public class ExamHandler implements HttpHandler {
 
@@ -19,8 +23,17 @@ public class ExamHandler implements HttpHandler {
             return;
         }
 
+        URI requestURI = exchange.getRequestURI();
+        Map<String, String> params = parseQuery(requestURI.getQuery());
+
+        if (!params.containsKey("examId")) {
+            exchange.sendResponseHeaders(400, -1);
+            return;
+        }
+
         try {
-            List<Question> questions = service.getQuestions();
+            int examId = Integer.parseInt(params.get("examId"));
+            List<Question> questions = service.getQuestionsByExamId(examId);
 
             StringBuilder response = new StringBuilder();
 
@@ -42,6 +55,17 @@ public class ExamHandler implements HttpHandler {
 
         } catch (Exception e) {
             e.printStackTrace();
+            exchange.sendResponseHeaders(500, -1);
         }
+    }
+
+    private Map<String, String> parseQuery(String query) {
+        if (query == null || query.isEmpty()) {
+            return Map.of();
+        }
+        return Arrays.stream(query.split("&"))
+                .map(param -> param.split("=", 2))
+                .filter(parts -> parts.length == 2)
+                .collect(Collectors.toMap(parts -> parts[0], parts -> parts[1]));
     }
 }

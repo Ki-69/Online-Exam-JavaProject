@@ -1,159 +1,176 @@
 package ui;
 
 import client.ApiClient;
-import javax.swing.*;
 import java.awt.*;
+import javax.swing.*;
 
 public class LoginUI {
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
-            JFrame frame = new JFrame("ExamHub - Online Exam System");
+
+            JFrame frame = new JFrame("ExamHub");
             frame.setSize(1000, 650);
             frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
             frame.setLocationRelativeTo(null);
             frame.setResizable(false);
-            frame.setIconImage(new ImageIcon(new java.awt.image.BufferedImage(1, 1, java.awt.image.BufferedImage.TYPE_INT_RGB)).getImage());
 
-            JPanel mainPanel = new JPanel(new GridLayout(1, 2, 0, 0));
-            mainPanel.setBackground(UITheme.BG_PRIMARY);
+            JPanel root = new JPanel(new GridLayout(1, 2));
+            root.setBackground(UITheme.BG_PRIMARY);
 
-            // LEFT PANEL - BRANDING
-            JPanel leftPanel = new JPanel(new GridBagLayout());
-            leftPanel.setBackground(UITheme.PRIMARY_COLOR);
+            // =========================
+            // LEFT SIDE (CLEAN BRANDING)
+            // =========================
 
-            GridBagConstraints leftGbc = new GridBagConstraints();
-            leftGbc.insets = new Insets(30, 30, 30, 30);
+            JPanel left = new JPanel(new GridBagLayout());
+            left.setBackground(UITheme.BG_PRIMARY);
 
-            ImageIcon brandImg = UITheme.loadIcon("/assets/brand.png", 80);
-            JLabel brandIcon = (brandImg != null) ? new JLabel(brandImg) : new JLabel("📚");
-            if (brandImg == null) brandIcon.setFont(UITheme.getPreferredFont("Segoe UI", Font.PLAIN, 80));
-            leftGbc.gridx = 0;
-            leftGbc.gridy = 0;
-            leftGbc.insets = new Insets(30, 30, 20, 30);
-            leftPanel.add(brandIcon, leftGbc);
+            GridBagConstraints l = new GridBagConstraints();
+            l.gridx = 0;
+            l.insets = new Insets(10, 40, 10, 40);
 
-            JLabel brandTitle = new JLabel("ExamHub");
-            brandTitle.setFont(UITheme.FONT_TITLE_LARGE);
-            brandTitle.setForeground(Color.WHITE);
-            leftGbc.gridy = 1;
-            leftGbc.insets = new Insets(0, 30, 10, 30);
-            leftPanel.add(brandTitle, leftGbc);
+            JLabel logo = UITheme.iconLabel("/assets/brand.png", "📚", 64);
+            l.gridy = 0;
+            l.insets = new Insets(40, 40, 10, 40);
+            left.add(logo, l);
 
-            JLabel brandSubtitle = new JLabel("Professional Examination Platform");
-            brandSubtitle.setFont(UITheme.FONT_SUBTITLE);
-            brandSubtitle.setForeground(new Color(200, 220, 255));
-            leftGbc.gridy = 2;
-            leftGbc.insets = new Insets(0, 30, 60, 30);
-            leftPanel.add(brandSubtitle, leftGbc);
+            JLabel title = new JLabel("ExamHub");
+            title.setFont(UITheme.FONT_TITLE_LARGE);
+            title.setForeground(UITheme.TEXT_PRIMARY);
+            l.gridy = 1;
+            l.insets = new Insets(10, 40, 5, 40);
+            left.add(title, l);
 
-            JTextArea features = new JTextArea("✓ Secure Authentication\n✓ Real-time Scoring\n✓ Question Management\n✓ Result Analytics");
+            JLabel subtitle = new JLabel("Online Examination Platform");
+            subtitle.setFont(UITheme.FONT_BODY);
+            subtitle.setForeground(UITheme.TEXT_SECONDARY);
+            l.gridy = 2;
+            l.insets = new Insets(0, 40, 40, 40);
+            left.add(subtitle, l);
+
+            JTextArea features = new JTextArea(
+                    "• Secure login\n• Real-time results\n• Clean experience"
+            );
             features.setFont(UITheme.FONT_BODY);
-            features.setForeground(new Color(220, 230, 255));
-            features.setBackground(UITheme.PRIMARY_COLOR);
+            features.setForeground(UITheme.TEXT_SECONDARY);
+            features.setBackground(UITheme.BG_PRIMARY);
             features.setEditable(false);
-            features.setLineWrap(true);
-            features.setWrapStyleWord(true);
-            features.setBorder(BorderFactory.createEmptyBorder(10, 30, 30, 30));
-            leftGbc.gridy = 3;
-            leftGbc.insets = new Insets(0, 30, 30, 30);
-            leftPanel.add(features, leftGbc);
+            features.setBorder(null);
+            l.gridy = 3;
+            left.add(features, l);
 
-            // RIGHT PANEL - LOGIN FORM wrapped in a polished card
-            JPanel rightPanel = new JPanel();
-            rightPanel.setBackground(UITheme.BG_PRIMARY);
-            rightPanel.setLayout(new GridBagLayout());
+            // =========================
+            // RIGHT SIDE (LOGIN CARD)
+            // =========================
 
-            JPanel rightCard = UITheme.createCardPanel();
-            rightCard.add(rightPanel, BorderLayout.CENTER);
+            JPanel rightWrapper = new JPanel(new GridBagLayout());
+            rightWrapper.setBackground(UITheme.BG_PRIMARY);
 
-            GridBagConstraints gbc = new GridBagConstraints();
-            gbc.fill = GridBagConstraints.HORIZONTAL;
-            gbc.insets = new Insets(UITheme.PADDING_LARGE, UITheme.PADDING_LARGE, UITheme.PADDING_MEDIUM, UITheme.PADDING_LARGE);
+            JPanel card = UITheme.createCardPanel();
+            card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
+            card.setPreferredSize(new Dimension(380, 420));
 
-            JLabel loginTitle = new JLabel("Welcome Back");
+            JLabel loginTitle = new JLabel("Sign in");
             loginTitle.setFont(UITheme.FONT_TITLE_MEDIUM);
-            loginTitle.setForeground(UITheme.PRIMARY_COLOR);
-            gbc.gridx = 0;
-            gbc.gridy = 0;
-            gbc.gridwidth = 2;
-            gbc.insets = new Insets(60, UITheme.PADDING_LARGE, 5, UITheme.PADDING_LARGE);
-            rightPanel.add(loginTitle, gbc);
+            loginTitle.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-            JLabel loginSubtitle = new JLabel("Sign in to your account");
-            loginSubtitle.setFont(UITheme.FONT_SUBTITLE);
-            loginSubtitle.setForeground(UITheme.TEXT_SECONDARY);
-            gbc.gridy = 1;
-            gbc.insets = new Insets(0, UITheme.PADDING_LARGE, 40, UITheme.PADDING_LARGE);
-            rightPanel.add(loginSubtitle, gbc);
+            JLabel loginSub = new JLabel("Enter your credentials");
+            loginSub.setFont(UITheme.FONT_BODY);
+            loginSub.setForeground(UITheme.TEXT_SECONDARY);
+            loginSub.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-            JLabel userLabel = new JLabel("Username");
-            userLabel.setFont(UITheme.FONT_LABEL);
-            userLabel.setForeground(UITheme.TEXT_PRIMARY);
-            gbc.gridy = 2;
-            gbc.gridwidth = 1;
-            gbc.insets = new Insets(20, UITheme.PADDING_LARGE, 5, UITheme.PADDING_LARGE);
-            rightPanel.add(userLabel, gbc);
+            JTextField user = UITheme.createTextField();
+            JPasswordField pass = UITheme.createPasswordField();
 
-            JTextField userField = UITheme.createTextField();
-            userField.setMaximumSize(new Dimension(Integer.MAX_VALUE, 45));
-            gbc.gridy = 3;
-            gbc.insets = new Insets(5, UITheme.PADDING_LARGE, 25, UITheme.PADDING_LARGE);
-            rightPanel.add(userField, gbc);
+            JButton loginBtn = UITheme.createPrimaryButton("Sign In");
 
-            JLabel passLabel = new JLabel("Password");
-            passLabel.setFont(UITheme.FONT_LABEL);
-            passLabel.setForeground(UITheme.TEXT_PRIMARY);
-            gbc.gridy = 4;
-            gbc.insets = new Insets(20, UITheme.PADDING_LARGE, 5, UITheme.PADDING_LARGE);
-            rightPanel.add(passLabel, gbc);
+            user.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
+            pass.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
+            loginBtn.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
 
-            JPasswordField passField = UITheme.createPasswordField();
-            passField.setMaximumSize(new Dimension(Integer.MAX_VALUE, 45));
-            gbc.gridy = 5;
-            gbc.insets = new Insets(5, UITheme.PADDING_LARGE, 35, UITheme.PADDING_LARGE);
-            rightPanel.add(passField, gbc);
+            card.add(loginTitle);
+            card.add(Box.createVerticalStrut(5));
+            card.add(loginSub);
+            card.add(Box.createVerticalStrut(25));
 
-            JButton loginButton = UITheme.createPrimaryButton("🔓 Sign In");
-            loginButton.setMaximumSize(new Dimension(Integer.MAX_VALUE, 45));
-            gbc.gridy = 6;
-            gbc.insets = new Insets(10, UITheme.PADDING_LARGE, 30, UITheme.PADDING_LARGE);
-            rightPanel.add(loginButton, gbc);
+            card.add(label("Username"));
+            card.add(user);
+            card.add(Box.createVerticalStrut(15));
 
-            mainPanel.add(leftPanel);
-            mainPanel.add(rightCard);
+            card.add(label("Password"));
+            card.add(pass);
+            card.add(Box.createVerticalStrut(25));
 
-            frame.add(mainPanel);
+            card.add(loginBtn);
 
-            loginButton.addActionListener(e -> {
-                try {
-                    String username = userField.getText().trim();
-                    String password = new String(passField.getPassword());
+            rightWrapper.add(card);
 
-                    if (username.isEmpty() || password.isEmpty()) {
-                        JOptionPane.showMessageDialog(frame, "Please enter both username and password", "Validation Error", JOptionPane.WARNING_MESSAGE);
-                        return;
-                    }
+            root.add(left);
+            root.add(rightWrapper);
 
-                    String response = ApiClient.login(username, password);
-                    String[] parts = response.split(",");
-                    int userId = Integer.parseInt(parts[0]);
-                    String role = parts[1];
+            frame.add(root);
 
-                    frame.dispose();
+            // =========================
+            // LOGIN LOGIC (UNCHANGED)
+            // =========================
 
-                    if (role.equals("STUDENT")) {
-                        new StudentDashboard(userId);
-                    } else if (role.equals("ADMIN")) {
-                        new AdminDashboard();
-                    }
+            loginBtn.addActionListener(e -> {
 
-                } catch (Exception ex) {
-                    JOptionPane.showMessageDialog(frame, "Invalid credentials", "Login Failed", JOptionPane.ERROR_MESSAGE);
+                String username = user.getText().trim();
+                String password = new String(pass.getPassword());
+
+                if (username.isEmpty() || password.isEmpty()) {
+                    JOptionPane.showMessageDialog(frame, "Enter credentials");
+                    return;
                 }
+
+                loginBtn.setEnabled(false);
+                loginBtn.setText("Logging in...");
+
+                SwingWorker<String[], Void> worker = new SwingWorker<String[], Void>() {
+
+                    protected String[] doInBackground() throws Exception {
+                        return ApiClient.login(username, password).split(",");
+                    }
+
+                    protected void done() {
+                        try {
+                            String[] parts = get();
+                            int userId = Integer.parseInt(parts[0]);
+                            String role = parts[1];
+
+                            frame.dispose();
+
+                            if (role.equals("STUDENT")) {
+                                new StudentDashboard(userId);
+                            } else if (role.equals("ADMIN")) {
+                                new AdminDashboard();
+                            } else if (role.equals("TEACHER")) {
+                                new TeacherDashboard(userId);
+                            }
+
+                        } catch (Exception ex) {
+                            loginBtn.setEnabled(true);
+                            loginBtn.setText("Sign In");
+
+                            JOptionPane.showMessageDialog(frame,
+                                    "Invalid credentials or server not running");
+                        }
+                    }
+                };
+
+                worker.execute();
             });
 
             frame.setVisible(true);
         });
+    }
+
+    private static JLabel label(String text) {
+        JLabel l = new JLabel(text);
+        l.setFont(UITheme.FONT_LABEL);
+        l.setForeground(UITheme.TEXT_SECONDARY);
+        l.setAlignmentX(Component.LEFT_ALIGNMENT);
+        return l;
     }
 }

@@ -1,227 +1,231 @@
 package ui;
 
 import client.ApiClient;
-
-import javax.swing.*;
 import java.awt.*;
-import java.io.OutputStream;
-import java.net.HttpURLConnection;
-import java.net.URL;
-
-import java.util.ArrayList;
-import java.util.Enumeration;
+import java.awt.event.ActionListener;
+import java.util.*;
 import java.util.List;
-import java.util.Scanner;
+import javax.swing.*;
+import model.Course;
+import model.Exam;
+import service.CourseService;
+import service.ExamService;
 
 public class StudentDashboard {
 
-    private List<ButtonGroup> answerGroups = new ArrayList<>();
-    private List<Integer> questionIds = new ArrayList<>();
     private JFrame frame;
-    private JPanel questionPanel;
+    private int studentId;
+    private List<Course> courses = new ArrayList<>();
+    private CardLayout cardLayout;
+    private JPanel mainPanel;
+    private CourseService courseService;
+    private ExamService examService;
+    private JPanel courseGridPanel;
 
     public StudentDashboard(int studentId) {
+        this.studentId = studentId;
+        this.courseService = new CourseService();
+        this.examService = new ExamService();
 
-        frame = new JFrame("ExamHub - Student Exam Portal");
-        frame.setSize(1100, 750);
+        frame = new JFrame("ExamHub - Student Dashboard");
+        frame.setSize(1400, 900);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setLocationRelativeTo(null);
         frame.setResizable(false);
+        frame.getContentPane().setBackground(UITheme.BG_PRIMARY);
 
-        // Header Panel
-        JPanel headerPanel = new JPanel();
-        headerPanel.setBackground(UITheme.PRIMARY_COLOR);
-        headerPanel.setLayout(new BorderLayout());
-        headerPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        cardLayout = new CardLayout();
+        mainPanel = new JPanel(cardLayout);
+        mainPanel.setBackground(UITheme.BG_PRIMARY);
 
-        ImageIcon headerImg = UITheme.loadIcon("/assets/notes.png", 36);
-        JLabel headerIcon = (headerImg != null) ? new JLabel(headerImg) : new JLabel("📝");
-        if (headerImg == null) headerIcon.setFont(UITheme.getPreferredFont("Segoe UI", Font.PLAIN, 36));
-        
-        JLabel headerTitle = new JLabel("Exam Portal");
-        headerTitle.setFont(UITheme.FONT_TITLE_MEDIUM);
-        headerTitle.setForeground(Color.WHITE);
+        JPanel courseCarouselView = createCourseCarouselView();
+        mainPanel.add(courseCarouselView, "CAROUSEL");
 
-        JLabel studentInfo = new JLabel("Student ID: " + studentId);
-        studentInfo.setFont(UITheme.FONT_LABEL);
-        studentInfo.setForeground(new Color(200, 220, 255));
-
-        JPanel headerLeft = new JPanel(new BorderLayout(10, 0));
-        headerLeft.setOpaque(false);
-        headerLeft.add(headerIcon, BorderLayout.WEST);
-        
-        JPanel titlePanel = new JPanel(new BorderLayout());
-        titlePanel.setOpaque(false);
-        titlePanel.add(headerTitle, BorderLayout.NORTH);
-        titlePanel.add(studentInfo, BorderLayout.SOUTH);
-        headerLeft.add(titlePanel, BorderLayout.CENTER);
-
-        headerPanel.add(headerLeft, BorderLayout.WEST);
-
-        // Control Buttons Panel
-        JPanel buttonPanel = new JPanel();
-        buttonPanel.setBackground(UITheme.BG_SECONDARY);
-        buttonPanel.setLayout(new FlowLayout(FlowLayout.CENTER, 15, 15));
-        buttonPanel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
-
-        JButton startButton = UITheme.createSuccessButton("▶ Start Exam");
-        JButton submitButton = UITheme.createDangerButton("✓ Submit Answers");
-
-        buttonPanel.add(startButton);
-        buttonPanel.add(submitButton);
-
-        // Questions Container
-        questionPanel = new JPanel();
-        questionPanel.setLayout(new BoxLayout(questionPanel, BoxLayout.Y_AXIS));
-        questionPanel.setBackground(UITheme.BG_PRIMARY);
-        questionPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
-
-        JScrollPane scrollPane = new JScrollPane(questionPanel);
-        scrollPane.setBackground(UITheme.BG_PRIMARY);
-        scrollPane.getViewport().setBackground(UITheme.BG_PRIMARY);
-        scrollPane.setBorder(BorderFactory.createLineBorder(UITheme.BORDER_COLOR, 1));
-
-        frame.setLayout(new BorderLayout());
-        frame.add(headerPanel, BorderLayout.NORTH);
-        frame.add(buttonPanel, BorderLayout.SOUTH);
-        frame.add(scrollPane, BorderLayout.CENTER);
-
-        // START EXAM EVENT
-        startButton.addActionListener(e -> {
-            try {
-                questionPanel.removeAll();
-                answerGroups.clear();
-                questionIds.clear();
-
-                String response = ApiClient.startExam();
-                String[] questions = response.split("\n");
-
-                int questionNumber = 1;
-                for (String q : questions) {
-                    String[] parts = q.split("\\|");
-
-                    int qId = Integer.parseInt(parts[0]);
-                    questionIds.add(qId);
-
-                    JPanel qPanel = createQuestionPanel(parts, questionNumber++);
-                    questionPanel.add(qPanel);
-                    questionPanel.add(Box.createVerticalStrut(15));
-                }
-
-                questionPanel.revalidate();
-                questionPanel.repaint();
-
-            } catch (Exception ex) {
-                JOptionPane.showMessageDialog(frame, "Error loading questions", "Error", JOptionPane.ERROR_MESSAGE);
-            }
-        });
-
-        // SUBMIT ANSWERS EVENT
-        submitButton.addActionListener(e -> {
-            try {
-                if (questionIds.isEmpty()) {
-                    JOptionPane.showMessageDialog(frame, "Please start the exam first", "No Exam Started", JOptionPane.WARNING_MESSAGE);
-                    return;
-                }
-                
-                StringBuilder answerData = new StringBuilder();
-
-                for (int i = 0; i < answerGroups.size(); i++) {
-                    ButtonGroup group = answerGroups.get(i);
-                    Enumeration<AbstractButton> buttons = group.getElements();
-                    String selected = "";
-
-                    while (buttons.hasMoreElements()) {
-                        AbstractButton btn = buttons.nextElement();
-                        if (btn.isSelected()) {
-                            selected = btn.getText().substring(0, 1);
-                        }
-                    }
-
-                    if (!selected.isEmpty()) {
-                        answerData.append(questionIds.get(i))
-                                .append(":")
-                                .append(selected)
-                                .append(",");
-                    }
-                }
-
-                if (answerData.length() > 0) {
-                    answerData.deleteCharAt(answerData.length() - 1);
-                }
-
-                String data = "studentId=" + studentId + "&answers=" + answerData;
-
-                URL url = new URL("http://localhost:8080/submitAnswers");
-                HttpURLConnection con = (HttpURLConnection) url.openConnection();
-                con.setRequestMethod("POST");
-                con.setDoOutput(true);
-
-                OutputStream os = con.getOutputStream();
-                os.write(data.getBytes());
-                os.close();
-
-                Scanner sc = new Scanner(con.getInputStream());
-                String response = sc.nextLine();
-
-                JOptionPane.showMessageDialog(frame, response, "Exam Submitted", JOptionPane.INFORMATION_MESSAGE);
-
-            } catch (Exception ex) {
-                JOptionPane.showMessageDialog(frame, "Error: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
-            }
-        });
-
+        frame.add(mainPanel);
         frame.setVisible(true);
+
+        loadCourses();
     }
 
-    private JPanel createQuestionPanel(String[] parts, int questionNumber) {
+    private JPanel createCourseCarouselView() {
+        JPanel containerPanel = new JPanel(new BorderLayout());
+        containerPanel.setBackground(UITheme.BG_PRIMARY);
+
+        // HEADER (FIXED — no aggressive blue)
+        JPanel headerPanel = new JPanel(new BorderLayout());
+        headerPanel.setBackground(UITheme.BG_SECONDARY);
+        headerPanel.setBorder(BorderFactory.createEmptyBorder(20, 28, 20, 28));
+
+        JPanel leftSection = new JPanel(new BorderLayout(0, 6));
+        leftSection.setOpaque(false);
+
+        JLabel headerTitle = new JLabel("My Courses");
+        headerTitle.setFont(UITheme.FONT_TITLE_MEDIUM);
+        headerTitle.setForeground(UITheme.TEXT_PRIMARY);
+
+        JLabel subheader = new JLabel("Select a course to view exams");
+        subheader.setFont(UITheme.FONT_BODY);
+        subheader.setForeground(UITheme.TEXT_SECONDARY);
+
+        leftSection.add(headerTitle, BorderLayout.NORTH);
+        leftSection.add(subheader, BorderLayout.SOUTH);
+
+        JButton logoutBtn = UITheme.createSecondaryButton("Logout");
+        logoutBtn.addActionListener(e -> {
+            frame.dispose();
+            new LoginUI();
+        });
+
+        headerPanel.add(leftSection, BorderLayout.WEST);
+        headerPanel.add(logoutBtn, BorderLayout.EAST);
+
+        containerPanel.add(headerPanel, BorderLayout.NORTH);
+
+        // GRID
+        courseGridPanel = new JPanel();
+        courseGridPanel.setBackground(UITheme.BG_PRIMARY);
+        courseGridPanel.setLayout(new FlowLayout(FlowLayout.LEFT, 20, 20));
+        courseGridPanel.setBorder(BorderFactory.createEmptyBorder(20, 28, 20, 28));
+
+        JScrollPane scrollPane = new JScrollPane(courseGridPanel);
+        scrollPane.setBorder(null);
+        scrollPane.getViewport().setBackground(UITheme.BG_PRIMARY);
+        scrollPane.getVerticalScrollBar().setUnitIncrement(15);
+
+        containerPanel.add(scrollPane, BorderLayout.CENTER);
+
+        return containerPanel;
+    }
+
+    private void loadCourses() {
+        new SwingWorker<List<Course>, Void>() {
+            protected List<Course> doInBackground() throws Exception {
+                return courseService.getAllCourses();
+            }
+
+            protected void done() {
+                try {
+                    courses = get();
+                    courseGridPanel.removeAll();
+
+                    for (Course course : courses) {
+                        JPanel card = createCourseCard(course);
+                        courseGridPanel.add(card);
+                    }
+
+                    courseGridPanel.revalidate();
+                    courseGridPanel.repaint();
+
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(frame,
+                            "Error loading courses: " + ex.getMessage());
+                }
+            }
+        }.execute();
+    }
+
+    // CLEAN CARD (NO GRADIENT, NO RANDOM COLORS)
+    private JPanel createCourseCard(Course course) {
+
         JPanel card = UITheme.createCardPanel();
-        card.setMaximumSize(new Dimension(Integer.MAX_VALUE, Integer.MAX_VALUE));
+        card.setPreferredSize(new Dimension(300, 180));
+        card.setLayout(new BorderLayout());
+        card.setCursor(new Cursor(Cursor.HAND_CURSOR));
 
-        JPanel qPanel = new JPanel();
-        qPanel.setLayout(new BoxLayout(qPanel, BoxLayout.Y_AXIS));
-        qPanel.setOpaque(false);
-        qPanel.setBorder(BorderFactory.createEmptyBorder(6, 6, 6, 6));
+        JPanel contentPanel = new JPanel();
+        contentPanel.setOpaque(false);
+        contentPanel.setLayout(new BoxLayout(contentPanel, BoxLayout.Y_AXIS));
 
-        JLabel questionNum = new JLabel("Question " + questionNumber);
-        questionNum.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        questionNum.setForeground(UITheme.PRIMARY_COLOR);
+        JLabel titleLabel = new JLabel(course.getTitle());
+        titleLabel.setFont(UITheme.FONT_TITLE_SMALL);
 
-        JLabel questionLabel = new JLabel("<html>" + parts[1] + "</html>");
-        questionLabel.setFont(UITheme.FONT_BODY);
-        questionLabel.setForeground(UITheme.TEXT_PRIMARY);
+        JLabel subtitleLabel = new JLabel("Course");
+        subtitleLabel.setFont(UITheme.FONT_LABEL);
+        subtitleLabel.setForeground(UITheme.TEXT_SECONDARY);
 
-        JRadioButton a = new JRadioButton("A. " + parts[2]);
-        JRadioButton b = new JRadioButton("B. " + parts[3]);
-        JRadioButton c = new JRadioButton("C. " + parts[4]);
-        JRadioButton d = new JRadioButton("D. " + parts[5]);
+        contentPanel.add(titleLabel);
+        contentPanel.add(Box.createVerticalStrut(6));
+        contentPanel.add(subtitleLabel);
+        contentPanel.add(Box.createVerticalGlue());
 
-        for (JRadioButton btn : new JRadioButton[]{a, b, c, d}) {
-            btn.setFont(UITheme.FONT_BODY);
-            btn.setBackground(UITheme.BG_TERTIARY);
-            btn.setForeground(UITheme.TEXT_PRIMARY);
-            btn.setFocusPainted(false);
-            btn.setBorder(BorderFactory.createEmptyBorder(8, 0, 8, 0));
-            btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        }
+        JProgressBar progressBar = new JProgressBar(0, 100);
+        progressBar.setBorder(null);
 
-        ButtonGroup group = new ButtonGroup();
-        group.add(a);
-        group.add(b);
-        group.add(c);
-        group.add(d);
-        answerGroups.add(group);
+        card.add(contentPanel, BorderLayout.CENTER);
+        card.add(progressBar, BorderLayout.SOUTH);
 
-        qPanel.add(questionNum);
-        qPanel.add(Box.createVerticalStrut(8));
-        qPanel.add(questionLabel);
-        qPanel.add(Box.createVerticalStrut(12));
-        qPanel.add(a);
-        qPanel.add(b);
-        qPanel.add(c);
-        qPanel.add(d);
+        // SAME LOGIC (UNCHANGED)
+        new SwingWorker<Integer, Void>() {
+            protected Integer doInBackground() throws Exception {
+                try {
+                    List<Exam> allExams = examService.getExamsByCourseId(course.getCourseId());
+                    if (allExams.isEmpty()) return 0;
 
-        card.add(qPanel, BorderLayout.CENTER);
+                    int completed = 0;
+
+                    for (Exam exam : allExams) {
+                        try {
+                            String result = ApiClient.getResults(exam.getExamId(), studentId);
+                            if (result != null && !result.trim().isEmpty()) {
+                                completed++;
+                            }
+                        } catch (Exception ignored) {}
+                    }
+
+                    return (int) ((completed * 100.0) / allExams.size());
+                } catch (Exception e) {
+                    return 0;
+                }
+            }
+
+            protected void done() {
+                try {
+                    progressBar.setValue(get());
+                } catch (Exception ignored) {}
+            }
+        }.execute();
+
+        card.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                showCourseDetail(course);
+            }
+        });
+
         return card;
+    }
+
+    private void showCourseDetail(Course course) {
+        new SwingWorker<JPanel, Void>() {
+            protected JPanel doInBackground() throws Exception {
+                return new CourseDetailPanel(
+                        StudentDashboard.this,
+                        course,
+                        studentId,
+                        examService
+                );
+            }
+
+            protected void done() {
+                try {
+                    JPanel detailPanel = get();
+                    mainPanel.add(detailPanel, "DETAIL");
+                    cardLayout.show(mainPanel, "DETAIL");
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(frame,
+                            "Error: " + ex.getMessage());
+                }
+            }
+        }.execute();
+    }
+
+    public void backToCourses() {
+        cardLayout.show(mainPanel, "CAROUSEL");
+        loadCourses();
+    }
+
+    private JButton createHeaderButton(String text, Color bgColor, ActionListener listener) {
+        JButton btn = UITheme.createButton(text, bgColor, Color.WHITE);
+        btn.addActionListener(listener);
+        return btn;
     }
 }

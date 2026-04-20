@@ -11,9 +11,9 @@ public class ResultService {
     private QuestionDAO questionDAO = new QuestionDAO();
     private ResultDAO resultDAO = new ResultDAO();
 
-    public int evaluateAndStore(int studentId, Map<Integer, String> answers) throws Exception {
+    public int evaluateAndStore(int studentId, int examId, Map<Integer, String> answers) throws Exception {
 
-        List<Question> questions = questionDAO.getAllQuestionsWithAnswers();
+        List<Question> questions = questionDAO.getQuestionsByExamId(examId);
 
         int score = 0;
 
@@ -26,7 +26,7 @@ public class ResultService {
             }
         }
 
-        resultDAO.saveResult(studentId, score);
+        resultDAO.saveResult(studentId, examId, score);
 
         return score;
     }
