@@ -580,7 +580,7 @@ public class AdminDashboard {
                     JSONArray users = new JSONArray(response);
                     for (int i = 0; i < users.length(); i++) {
                         JSONObject user = users.getJSONObject(i);
-                        if ("teacher".equals(user.getString("role"))) {
+                        if ("TEACHER".equals(user.getString("role"))) {
                             String item = user.getInt("user_id") + " - " + user.getString("username");
                             SwingUtilities.invokeLater(() -> dropdown.addItem(item));
                         }
@@ -606,7 +606,7 @@ public class AdminDashboard {
                     JSONArray users = new JSONArray(response);
                     for (int i = 0; i < users.length(); i++) {
                         JSONObject user = users.getJSONObject(i);
-                        if ("student".equals(user.getString("role"))) {
+                        if ("STUDENT".equals(user.getString("role"))) {
                             String item = user.getInt("user_id") + " - " + user.getString("username");
                             SwingUtilities.invokeLater(() -> dropdown.addItem(item));
                         }
