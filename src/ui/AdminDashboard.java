@@ -328,7 +328,7 @@ public class AdminDashboard {
         panel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
 
         JTable table = new JTable(new javax.swing.table.DefaultTableModel(
-            new String[]{"Student", "Score", "Attempts"}, 0));
+            new String[]{"Student", "Score"}, 0));
 
         JScrollPane scroll = new JScrollPane(table);
 
@@ -362,23 +362,26 @@ public class AdminDashboard {
 
                             if (e.getInt("course_id") == courseId) {
                                 String name = e.getString("student_name");
+                                String courseName = e.getString("course_name");
 
-                                int score = 0;
+                                int maxScore = 0;
                                 int attempts = 0;
 
                                 for (int j = 0; j < results.length(); j++) {
                                     JSONObject r = results.getJSONObject(j);
-                                    if (r.getString("student_name").equals(name)) {
-                                        score += r.getInt("score");
+                                    if (r.getString("student_name").equals(name) && r.getString("course_name").equals(courseName)) {
+                                        maxScore = Math.max(maxScore, r.getInt("score"));
                                         attempts++;
                                     }
                                 }
 
-                                model.addRow(new Object[]{
-                                        name,
-                                        score,
-                                        attempts
-                                });
+                                if (attempts > 0) {
+                                    model.addRow(new Object[]{
+                                            name,
+                                            maxScore,
+                                            attempts
+                                    });
+                                }
                             }
                         }
                     });
